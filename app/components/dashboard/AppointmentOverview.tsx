@@ -130,6 +130,7 @@ export default function AppointmentOverview() {
                   )}
                   %
                 </p>
+                <p>lorem ipsum dolor sit amet</p>
 
               </div>
             </div>
