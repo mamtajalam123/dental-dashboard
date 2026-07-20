@@ -2,511 +2,322 @@
 
 import { useState } from "react";
 
-import {
-  serviceCategories
-} from "@/app/data/serviceCategories";
-
-import {
-  teamDesignations
-} from "@/app/data/teamDesignations";
-
-
-
-export default function AppointmentForm(){
-
-
-const [formData,setFormData] = useState({
-
-patient:"",
-
-phone:"",
-
-email:"",
-
-doctor:"",
-
-treatment:"",
-
-date:"",
-
-time:"",
-
-notes:""
-
-});
-
-
-
-
-const handleChange = (
-e:React.ChangeEvent<
-HTMLInputElement |
-HTMLTextAreaElement |
-HTMLSelectElement
->
-)=>{
-
-
-setFormData({
-
-...formData,
-
-[e.target.name]:e.target.value
-
-});
-
-
-};
-
-
-
-
-
-const handleSubmit = (
-e:React.FormEvent
-)=>{
-
-
-e.preventDefault();
-
-
-console.log(formData);
-
-
-// API later
-
-
-};
-
-
-
-
-
-
-return (
-
-<form
-
-onSubmit={handleSubmit}
-
-className="
-bg-white
-rounded-2xl
-border
-shadow-sm
-p-6
-space-y-6
-"
-
->
-
-
-{/* Patient Information */}
-
-
-<div>
-
-<h2 className="
-text-xl
-font-semibold
-">
-
-Patient Information
-
-</h2>
-
-
-<p className="
-text-sm
-text-gray-500
-">
-
-Enter patient appointment details
-
-</p>
-
-
-</div>
-
-
-
-
-
-
-<div className="
-grid
-md:grid-cols-2
-gap-5
-">
-
-
-
-<input
-
-name="patient"
-
-value={formData.patient}
-
-onChange={handleChange}
-
-placeholder="Patient Name"
-
-className="
-border
-rounded-xl
-px-4
-py-3
-"
-
-/>
-
-
-
-
-
-<input
-
-name="phone"
-
-value={formData.phone}
-
-onChange={handleChange}
-
-placeholder="Phone Number"
-
-className="
-border
-rounded-xl
-px-4
-py-3
-"
-
-/>
-
-
-
-
-
-
-<input
-
-name="email"
-
-value={formData.email}
-
-onChange={handleChange}
-
-placeholder="Email Address"
-
-className="
-border
-rounded-xl
-px-4
-py-3
-"
-
-/>
-
-
-
-
-
-
-
-
-{/* Doctor Dynamic */}
-
-
-<select
-
-name="doctor"
-
-value={formData.doctor}
-
-onChange={handleChange}
-
-className="
-border
-rounded-xl
-px-4
-py-3
-"
-
->
-
-
-<option value="">
-
-Select Doctor
-
-</option>
-
-
-
-{
-
-teamDesignations
-
-.filter(
-(item)=>item.status==="Active"
-)
-
-.map((item)=>(
-
-
-<option
-
-key={item.id}
-
-value={item.name}
-
->
-
-{item.name}
-
-</option>
-
-
-))
-
-
+interface AppointmentFormProps {
+  initialData?: {
+    patientName?: string;
+    phone?: string;
+    email?: string;
+    doctor?: string;
+    treatment?: string;
+    appointmentDate?: string;
+    appointmentTime?: string;
+    message?: string;
+  };
+
+  onSubmit: (
+    data: any
+  ) => void | Promise<void>;
+
+  submitLabel?: string;
 }
 
+export default function AppointmentForm({
+  initialData,
+  onSubmit,
+  submitLabel = "Save Appointment",
+}: AppointmentFormProps) {
 
+  const [form, setForm] = useState({
+    patientName: initialData?.patientName || "",
+    phone: initialData?.phone || "",
+    email: initialData?.email || "",
+    doctor: initialData?.doctor || "",
+    treatment: initialData?.treatment || "",
+    appointmentDate:
+      initialData?.appointmentDate || "",
+    appointmentTime:
+      initialData?.appointmentTime || "",
+    message:
+      initialData?.message || "",
+  });
 
-</select>
 
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement |
+      HTMLSelectElement |
+      HTMLTextAreaElement
+    >
+  ) => {
 
+    setForm((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+
+  };
+
 
+  const handleSubmit = async (
+    e: React.FormEvent
+  ) => {
 
-</div>
+    e.preventDefault();
 
+    try {
 
+      await onSubmit(form);
+
+    } catch(error){
+
+      console.error(
+        "Appointment submit error:",
+        error
+      );
+
+    }
+
+  };
+
+
+  const handleReset = () => {
+
+    setForm({
+      patientName: "",
+      phone: "",
+      email: "",
+      doctor: "",
+      treatment: "",
+      appointmentDate: "",
+      appointmentTime: "",
+      message: "",
+    });
 
+  };
 
 
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+    >
 
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Patient Name
+          </label>
 
+          <input
+            type="text"
+            name="patientName"
+            value={form.patientName}
+            onChange={handleChange}
+            required
+            className="w-full rounded-xl border border-slate-300 px-4 py-3"
+            placeholder="Enter patient name"
+          />
+        </div>
+
 
 
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Phone
+          </label>
+
+          <input
+            type="text"
+            name="phone"
+            value={form.phone}
+            onChange={handleChange}
+            required
+            className="w-full rounded-xl border border-slate-300 px-4 py-3"
+            placeholder="Enter phone number"
+          />
+        </div>
 
-{/* Appointment Details */}
 
 
-<div>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Email
+          </label>
 
+          <input
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            className="w-full rounded-xl border border-slate-300 px-4 py-3"
+            placeholder="Enter email"
+          />
+        </div>
 
-<h2 className="
-text-xl
-font-semibold
-">
 
-Appointment Details
 
-</h2>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Doctor
+          </label>
 
+          <select
+            name="doctor"
+            value={form.doctor}
+            onChange={handleChange}
+            required
+            className="w-full rounded-xl border border-slate-300 px-4 py-3"
+          >
+            <option value="">
+              Select Doctor
+            </option>
 
-</div>
+            <option>
+              Dr. Sultan
+            </option>
 
+            <option>
+              Dr. Ahmed
+            </option>
 
+            <option>
+              Dr. Khan
+            </option>
 
+          </select>
 
+        </div>
 
-<div className="
-grid
-md:grid-cols-2
-gap-5
-">
 
 
+        <div>
+          <label className="mb-2 block text-sm-medium text-slate-700">
+            Treatment
+          </label>
 
-<input
+          <select
+            name="treatment"
+            value={form.treatment}
+            onChange={handleChange}
+            required
+            className="w-full rounded-xl border border-slate-300 px-4 py-3"
+          >
 
-type="date"
+            <option value="">
+              Select Treatment
+            </option>
 
-name="date"
+            <option>
+              Dental Cleaning
+            </option>
 
-value={formData.date}
+            <option>
+              Root Canal
+            </option>
 
-onChange={handleChange}
+            <option>
+              Dental Implant
+            </option>
 
-className="
-border
-rounded-xl
-px-4
-py-3
-"
+            <option>
+              Teeth Whitening
+            </option>
 
-/>
+            <option>
+              Braces
+            </option>
 
+            <option>
+              Consultation
+            </option>
 
+          </select>
 
+        </div>
 
 
 
-<input
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Appointment Date
+          </label>
 
-type="time"
+          <input
+            type="date"
+            name="appointmentDate"
+            value={form.appointmentDate}
+            onChange={handleChange}
+            required
+            className="w-full rounded-xl border border-slate-300 px-4 py-3"
+          />
 
-name="time"
+        </div>
 
-value={formData.time}
 
-onChange={handleChange}
 
-className="
-border
-rounded-xl
-px-4
-py-3
-"
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Appointment Time
+          </label>
 
-/>
+          <input
+            type="time"
+            name="appointmentTime"
+            value={form.appointmentTime}
+            onChange={handleChange}
+            className="w-full rounded-xl border border-slate-300 px-4 py-3"
+          />
 
+        </div>
 
 
-</div>
+      </div>
 
 
+      <div className="mt-6">
 
+        <label className="mb-2 block text-sm font-medium text-slate-700">
+          Message
+        </label>
 
+        <textarea
+          name="message"
+          rows={5}
+          value={form.message}
+          onChange={handleChange}
+          className="w-full rounded-xl border border-slate-300 px-4 py-3"
+          placeholder="Additional notes..."
+        />
 
+      </div>
 
 
 
+      <div className="mt-8 flex justify-end gap-4">
 
 
-{/* Treatment Dynamic */}
+        <button
+          type="button"
+          onClick={handleReset}
+          className="rounded-xl border border-slate-300 px-6 py-3"
+        >
+          Reset
+        </button>
 
 
+        <button
+          type="submit"
+          className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white"
+        >
+          {submitLabel}
+        </button>
 
-<select
 
-name="treatment"
+      </div>
 
-value={formData.treatment}
 
-onChange={handleChange}
-
-className="
-w-full
-border
-rounded-xl
-px-4
-py-3
-"
-
->
-
-
-<option value="">
-
-Select Treatment
-
-</option>
-
-
-
-{
-
-serviceCategories
-
-.filter(
-(item)=>item.status==="Active"
-)
-
-.map((item)=>(
-
-
-<option
-
-key={item.id}
-
-value={item.name}
-
->
-
-{item.name}
-
-</option>
-
-
-))
-
-
-}
-
-
-
-</select>
-
-
-
-
-
-
-
-
-
-
-<textarea
-
-name="notes"
-
-value={formData.notes}
-
-onChange={handleChange}
-
-rows={4}
-
-placeholder="Additional notes..."
-
-className="
-w-full
-border
-rounded-xl
-px-4
-py-3
-outline-none
-"
-
-/>
-
-
-
-
-
-
-
-
-<button
-
-type="submit"
-
-className="
-bg-blue-600
-text-white
-px-8
-py-3
-rounded-xl
-font-semibold
-hover:bg-blue-700
-transition
-"
-
->
-
-Create Appointment
-
-</button>
-
-
-
-
-
-</form>
-
-
-)
-
+    </form>
+  );
 }
