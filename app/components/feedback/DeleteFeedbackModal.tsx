@@ -18,11 +18,10 @@ export default function DeleteFeedbackModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
 
         {/* Header */}
-
         <div className="flex flex-col items-center border-b border-slate-200 px-6 py-6">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
             <AlertTriangle
@@ -36,9 +35,8 @@ export default function DeleteFeedbackModal({
           </h2>
 
           <p className="mt-2 text-center text-sm text-slate-500">
-            Are you sure you want to delete the feedback from
+            Are you sure you want to delete the feedback from{" "}
             <span className="font-semibold text-slate-700">
-              {" "}
               {patientName}
             </span>
             ?
@@ -49,8 +47,8 @@ export default function DeleteFeedbackModal({
           </p>
         </div>
 
-        {/* Footer */}
 
+        {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-5">
 
           <button
@@ -72,6 +70,7 @@ export default function DeleteFeedbackModal({
             Cancel
           </button>
 
+
           <button
             type="button"
             onClick={onConfirm}
@@ -91,6 +90,7 @@ export default function DeleteFeedbackModal({
           </button>
 
         </div>
+
       </div>
     </div>
   );

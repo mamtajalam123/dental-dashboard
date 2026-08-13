@@ -1,22 +1,20 @@
+
 import {
   Mail,
   MailOpen,
   CheckCircle2,
-  Archive,
 } from "lucide-react";
 
 type ContactStatsProps = {
   total: number;
   newCount: number;
   repliedCount: number;
-  archivedCount: number;
 };
 
 export default function ContactStats({
   total,
   newCount,
   repliedCount,
-  archivedCount,
 }: ContactStatsProps) {
   const cards = [
     {
@@ -40,17 +38,10 @@ export default function ContactStats({
       bg: "bg-emerald-100",
       color: "text-emerald-600",
     },
-    {
-      title: "Archived",
-      value: archivedCount,
-      icon: Archive,
-      bg: "bg-slate-200",
-      color: "text-slate-700",
-    },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
 
       {cards.map((card) => {
         const Icon = card.icon;
@@ -73,15 +64,22 @@ export default function ContactStats({
             <div className="flex items-center justify-between">
 
               <div>
-
-                <p className="text-sm font-medium text-slate-500">
+                <p className="
+                  text-sm
+                  font-medium
+                  text-slate-500
+                ">
                   {card.title}
                 </p>
 
-                <h2 className="mt-3 text-3xl font-bold text-slate-800">
+                <h2 className="
+                  mt-3
+                  text-3xl
+                  font-bold
+                  text-slate-800
+                ">
                   {card.value}
                 </h2>
-
               </div>
 
               <div
@@ -102,7 +100,6 @@ export default function ContactStats({
               </div>
 
             </div>
-
           </div>
         );
       })}

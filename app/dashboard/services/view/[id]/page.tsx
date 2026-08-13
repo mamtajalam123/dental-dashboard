@@ -1,213 +1,139 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
-import {
-  ArrowLeft,
-  Pencil,
-  Clock3,
-  FolderOpen,
-  FileText,
-} from "lucide-react";
-
-
-import StatusBadge from "@/app/components/services/StatusBadge";
-import { services } from "@/app/data/services";
+import { serviceAPI } from "@/app/services/service.api";
+import { Service } from "@/app/types/service";
 
 export default function ViewServicePage() {
+  const router = useRouter();
   const params = useParams();
 
   const id = Number(params.id);
 
-  const service = services.find(
-    (item) => item.id === id
-  );
+  const [service, setService] =
+    useState<Service | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  useEffect(() => {
+    loadService();
+  }, []);
+
+  const loadService = async () => {
+    try {
+      setLoading(true);
+
+      const data =
+        await serviceAPI.getById(id);
+
+      setService(data);
+    } catch (error) {
+      console.error(error);
+
+      alert("Failed to load service.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        Loading...
+      </div>
+    );
+  }
 
   if (!service) {
     return (
-      <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-
-        <h2 className="text-2xl font-bold text-red-600">
-          Service Not Found
-        </h2>
-
-        <p className="mt-3 text-slate-500">
-          This service does not exist.
-        </p>
-
-        <Link
-          href="/dashboard/services"
-          className="mt-6 inline-flex rounded-xl bg-blue-600 px-5 py-3 text-white"
-        >
-          Back to Services
-        </Link>
-
+      <div className="p-8">
+        Service not found.
       </div>
     );
   }
 
   return (
-
     <div className="space-y-6">
 
-      {/* Header */}
+      <button
+        onClick={() =>
+          router.push("/dashboard/services")
+        }
+        className="
+          flex
+          items-center
+          gap-2
+          text-blue-600
+          hover:text-blue-700
+        "
+      >
+        <ArrowLeft size={18} />
+        Back
+      </button>
 
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div
+        className="
+          rounded-2xl
+          border
+          bg-white
+          p-8
+          shadow-sm
+        "
+      >
+        <h1 className="mb-6 text-3xl font-bold">
+          {service.name}
+        </h1>
 
-        <div className="flex items-center gap-3">
-
-          <Link
-            href="/dashboard/services"
-            className="rounded-xl border border-slate-300 p-2 hover:bg-slate-100"
-          >
-            <ArrowLeft size={20} />
-          </Link>
+        <div className="grid gap-6 md:grid-cols-2">
 
           <div>
+            <h3 className="font-semibold text-slate-700">
+              Category
+            </h3>
 
-            <h1 className="text-3xl font-bold">
-              Service Details
-            </h1>
+            <p>{service.categoryName}</p>
+          </div>
 
-            <p className="text-slate-500">
-              View service information.
-            </p>
+          <div>
+            <h3 className="font-semibold text-slate-700">
+              Duration
+            </h3>
 
+            <p>{service.duration}</p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-slate-700">
+              Status
+            </h3>
+
+            <p>{service.status}</p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-slate-700">
+              Created
+            </h3>
+
+            <p>{service.createdAt}</p>
           </div>
 
         </div>
 
-      
+        <div className="mt-8">
+          <h3 className="mb-2 font-semibold text-slate-700">
+            Description
+          </h3>
 
+          <p className="leading-7 text-slate-600">
+            {service.description}
+          </p>
+        </div>
       </div>
-
-      {/* Card */}
-
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
-        {/* Image */}
-
-        <div className="relative h-72 w-full bg-slate-100">
-
-          <Image
-            src={service.image}
-            alt={service.name}
-            fill
-            className="object-cover"
-          />
-
-        </div>
-
-        {/* Content */}
-
-        <div className="space-y-8 p-8">
-
-          {/* Name */}
-
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-
-            <div>
-
-              <h2 className="text-3xl font-bold text-slate-900">
-                {service.name}
-              </h2>
-
-              <p className="mt-2 text-slate-500">
-                Dental Clinic Service
-              </p>
-
-            </div>
-
-            <StatusBadge status={service.status} />
-
-          </div>
-
-          {/* Information */}
-
-          <div className="grid gap-6 md:grid-cols-2">
-
-            <div className="rounded-xl border border-slate-200 p-5">
-
-              <div className="flex items-center gap-3">
-
-                <FolderOpen
-                  size={22}
-                  className="text-blue-600"
-                />
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Category
-                  </p>
-
-                  <h3 className="font-semibold">
-                    {service.category}
-                  </h3>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="rounded-xl border border-slate-200 p-5">
-
-              <div className="flex items-center gap-3">
-
-                <Clock3
-                  size={22}
-                  className="text-green-600"
-                />
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Duration
-                  </p>
-
-                  <h3 className="font-semibold">
-                    {service.duration}
-                  </h3>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* Description */}
-
-          <div className="rounded-xl border border-slate-200 p-6">
-
-            <div className="mb-4 flex items-center gap-2">
-
-              <FileText
-                size={20}
-                className="text-blue-600"
-              />
-
-              <h3 className="text-lg font-semibold">
-                Description
-              </h3>
-
-            </div>
-
-            <p className="leading-8 text-slate-600">
-              {service.description}
-            </p>
-
-          </div>
-
-        </div>
-
-      </div>
-
     </div>
-
   );
 }

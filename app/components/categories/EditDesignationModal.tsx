@@ -2,83 +2,59 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-
-import { Category } from "@/types/category";
-
+import { Designation } from "@/types/designation";
 
 interface EditDesignationModalProps {
-
-  open:boolean;
-
-  designation:Category | null;
-
-  onClose:()=>void;
-
-  onUpdate:(id:number, name:string)=>void;
-
+  open: boolean;
+  designation: Designation | null;
+  onClose: () => void;
+  onUpdate: (
+    id: number,
+    name: string
+  ) => Promise<void>;
 }
 
-
-
 export default function EditDesignationModal({
-
   open,
-
   designation,
-
   onClose,
-
   onUpdate,
+}: EditDesignationModalProps) {
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
 
-}:EditDesignationModalProps){
-
-
-  const [name,setName] = useState("");
-
-
-
-  useEffect(()=>{
-
-    if(designation){
-
+  useEffect(() => {
+    if (designation) {
       setName(designation.name);
+    }
+  }, [designation]);
 
+  if (!open || !designation) {
+    return null;
+  }
+
+  const handleUpdate = async () => {
+    if (!name.trim()) {
+      alert("Please enter designation name.");
+      return;
     }
 
-  },[designation]);
+    try {
+      setLoading(true);
 
+      await onUpdate(designation.id, name);
 
-
-
-  if(!open || !designation)
-    return null;
-
-
-
-
-  const handleUpdate = ()=>{
-
-
-    if(!name.trim())
-      return;
-
-
-    onUpdate(
-      designation.id,
-      name
-    );
-
-
-    onClose();
-
-
+      setName("");
+      onClose();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update designation.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-
-
-
   return (
-
     <div
       className="
         fixed
@@ -91,8 +67,6 @@ export default function EditDesignationModal({
         px-4
       "
     >
-
-
       <div
         className="
           w-full
@@ -103,87 +77,33 @@ export default function EditDesignationModal({
           shadow-xl
         "
       >
-
-
-
         {/* Header */}
-
-        <div
-          className="
-            flex
-            items-center
-            justify-between
-          "
-        >
-
-          <h2
-            className="
-              text-xl
-              font-bold
-              text-slate-800
-            "
-          >
-
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-slate-800">
             Edit Designation
-
           </h2>
 
-
-
           <button
-
             onClick={onClose}
-
-            className="
-              rounded-lg
-              p-2
-              hover:bg-slate-100
-            "
-
+            disabled={loading}
+            className="rounded-lg p-2 hover:bg-slate-100"
           >
-
-            <X size={20}/>
-
+            <X size={20} />
           </button>
-
-
         </div>
 
-
-
-
-
-
         {/* Input */}
-
-
         <div className="mt-6">
-
-
-          <label
-            className="
-              mb-2
-              block
-              text-sm
-              font-medium
-              text-slate-700
-            "
-          >
-
+          <label className="mb-2 block text-sm font-medium text-slate-700">
             Designation Name
-
           </label>
 
-
-
           <input
-
+            type="text"
             value={name}
-
-            onChange={(e)=>
-              setName(e.target.value)
-            }
-
+            onChange={(e) => setName(e.target.value)}
+            disabled={loading}
+            placeholder="Enter designation"
             className="
               w-full
               rounded-xl
@@ -193,59 +113,33 @@ export default function EditDesignationModal({
               py-3
               outline-none
               focus:border-blue-500
+              focus:ring-2
+              focus:ring-blue-200
             "
-
           />
-
-
         </div>
 
-
-
-
-
-
-
         {/* Buttons */}
-
-
-        <div
-          className="
-            mt-6
-            flex
-            justify-end
-            gap-3
-          "
-        >
-
-
+        <div className="mt-6 flex justify-end gap-3">
           <button
-
             onClick={onClose}
-
+            disabled={loading}
             className="
               rounded-xl
               border
+              border-slate-300
               px-5
               py-2.5
               text-slate-700
+              hover:bg-slate-100
             "
-
           >
-
             Cancel
-
           </button>
 
-
-
-
-
-
           <button
-
             onClick={handleUpdate}
-
+            disabled={loading}
             className="
               rounded-xl
               bg-blue-600
@@ -253,25 +147,14 @@ export default function EditDesignationModal({
               py-2.5
               text-white
               hover:bg-blue-700
+              disabled:cursor-not-allowed
+              disabled:opacity-60
             "
-
           >
-
-            Update
-
+            {loading ? "Updating..." : "Update"}
           </button>
-
-
-
         </div>
-
-
-
       </div>
-
-
     </div>
-
   );
-
 }

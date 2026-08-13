@@ -1,15 +1,18 @@
+
 type ContactStatusProps = {
-  status: "New" | "Read" | "Replied" | "Archived";
+  status: "New" | "Read" | "Replied";
 };
 
 export default function ContactStatus({
   status,
 }: ContactStatusProps) {
-  const styles = {
+  const styles: Record<
+    ContactStatusProps["status"],
+    string
+  > = {
     New: "bg-blue-100 text-blue-700",
     Read: "bg-yellow-100 text-yellow-700",
     Replied: "bg-emerald-100 text-emerald-700",
-    Archived: "bg-slate-200 text-slate-700",
   };
 
   return (

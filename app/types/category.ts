@@ -1,18 +1,13 @@
-export type CategoryType =
-  | "service"
-  | "designation";
-
-
 export interface Category {
+  id?: number;
 
-  id:number;
+  name: string;
 
-  name:string;
+  description?: string;
 
-  type:CategoryType;
+  status?: "Active" | "Inactive";
 
-  status:
-  | "Active"
-  | "Inactive";
+  created_at?: string;
 
+  updated_at?: string;
 }

@@ -1,315 +1,173 @@
 "use client";
 
-import { useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useState } from "react";
 
-
-type AddCategoryModalProps = {
-
-  open:boolean;
-
-  onClose:()=>void;
-
-  onAdd:(name:string)=>void;
-
-};
-
-
+interface AddCategoryModalProps {
+  open: boolean;
+  onClose: () => void;
+  onAdd: (name: string) => Promise<void>;
+}
 
 export default function AddCategoryModal({
-
   open,
-
   onClose,
-
   onAdd,
-
-}:AddCategoryModalProps){
-
-
-
-const [name,setName] =
-useState("");
-
-
-
-
-
-if(!open)
-return null;
-
-
-
-
-
-
-const handleSubmit=(
-
-e:React.FormEvent
-
-)=>{
-
-
-e.preventDefault();
-
-
-
-if(!name.trim()){
-
-alert("Please enter category name");
-
-return;
-
-}
-
-
-
-onAdd(name);
-
-
-setName("");
-
-
-
-};
-
-
-
-
-
-
-
-return (
-
-<div
-
-className="
-fixed
-inset-0
-z-50
-flex
-items-center
-justify-center
-bg-black/40
-px-4
-"
-
->
-
-
-<div
-
-className="
-w-full
-max-w-md
-rounded-2xl
-bg-white
-p-6
-shadow-xl
-"
-
->
-
-
-
-
-
-{/* Header */}
-
-
-<div
-
-className="
-mb-5
-flex
-items-center
-justify-between
-"
-
->
-
-
-<h2
-
-className="
-text-xl
-font-bold
-text-slate-800
-"
-
->
-
-Add Service Category
-
-</h2>
-
-
-
-
-<button
-
-onClick={onClose}
-
-className="
-rounded-lg
-p-2
-hover:bg-slate-100
-"
-
->
-
-<X size={20}/>
-
-</button>
-
-
-</div>
-
-
-
-
-
-
-
-<form
-
-onSubmit={handleSubmit}
-
->
-
-
-
-<label
-
-className="
-mb-2
-block
-font-medium
-"
-
->
-
-Category Name
-
-</label>
-
-
-
-<input
-
-
-type="text"
-
-
-value={name}
-
-
-onChange={(e)=>
-setName(e.target.value)
-}
-
-
-placeholder="Example: Implant"
-
-
-className="
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-py-3
-outline-none
-focus:border-blue-600
-"
-
-/>
-
-
-
-
-
-
-
-
-<div
-
-className="
-mt-6
-flex
-justify-end
-gap-3
-"
-
->
-
-
-<button
-
-type="button"
-
-onClick={onClose}
-
-className="
-rounded-xl
-border
-border-slate-300
-px-5
-py-2.5
-hover:bg-slate-50
-"
-
->
-
-Cancel
-
-</button>
-
-
-
-
-
-
-
-<button
-
-type="submit"
-
-className="
-rounded-xl
-bg-blue-600
-px-5
-py-2.5
-text-white
-hover:bg-blue-700
-"
-
->
-
-Add Category
-
-</button>
-
-
-
-</div>
-
-
-
-</form>
-
-
-
-
-
-</div>
-
-
-
-</div>
-
-
-);
-
-
+}: AddCategoryModalProps) {
+  const [name, setName] = useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setName("");
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      alert("Category name is required.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await onAdd(name.trim());
+
+      setName("");
+
+      onClose();
+    } catch (error: any) {
+      console.error(error);
+
+      alert(
+        error?.message ||
+          "Failed to add category."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="
+        fixed
+        inset-0
+        z-50
+        flex
+        items-center
+        justify-center
+        bg-black/40
+      "
+    >
+      <div
+        className="
+          w-full
+          max-w-md
+          rounded-2xl
+          bg-white
+          p-6
+          shadow-xl
+        "
+      >
+        <h2
+          className="
+            mb-6
+            text-2xl
+            font-bold
+          "
+        >
+          Add Category
+        </h2>
+
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5"
+        >
+          <div>
+            <label
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+              "
+            >
+              Category Name
+            </label>
+
+            <input
+              type="text"
+              placeholder="Enter category name"
+              value={name}
+              onChange={(e) =>
+                setName(e.target.value)
+              }
+              disabled={loading}
+              className="
+                w-full
+                rounded-xl
+                border
+                px-4
+                py-3
+                outline-none
+                focus:border-blue-500
+                disabled:bg-gray-100
+              "
+            />
+          </div>
+
+          <div
+            className="
+              flex
+              justify-end
+              gap-3
+            "
+          >
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="
+                rounded-xl
+                border
+                px-5
+                py-2
+                hover:bg-gray-100
+                disabled:opacity-60
+              "
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="
+                rounded-xl
+                bg-blue-600
+                px-5
+                py-2
+                text-white
+                hover:bg-blue-700
+                disabled:opacity-60
+              "
+            >
+              {loading
+                ? "Saving..."
+                : "Add Category"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }

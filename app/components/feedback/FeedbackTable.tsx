@@ -1,10 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import Image from "next/image";
 
-import { feedbackData } from "@/data/feedback";
 import { Feedback } from "@/types/feedback";
+import { Category } from "@/app/types/category";
+
+import { feedbackAPI } from "@/app/services/feedback.api";
+import { categoryAPI } from "@/app/services/category.api";
 
 import FeedbackFilters from "./FeedbackFilters";
 import FeedbackActions from "./FeedbackActions";
@@ -14,407 +22,1029 @@ import DeleteFeedbackModal from "./DeleteFeedbackModal";
 
 const ITEMS_PER_PAGE = 10;
 
-export default function FeedbackTable() {
-  const [feedbacks, setFeedbacks] =
-    useState<Feedback[]>(feedbackData);
+const DEFAULT_IMAGE =
+  "/images/default-user.png";
 
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [rating, setRating] = useState("");
-  const [treatment, setTreatment] = useState("");
+interface Props {
+  feedbacks: Feedback[];
 
-  const [page, setPage] = useState(1);
+  setFeedbacks: React.Dispatch<
+    React.SetStateAction<Feedback[]>
+  >;
+}
+
+export default function FeedbackTable({
+  feedbacks,
+  setFeedbacks,
+}: Props) {
+  // =====================================================
+  // FILTER STATES
+  // =====================================================
+
+  const [search, setSearch] =
+    useState("");
+
+  const [status, setStatus] =
+    useState("");
+
+  const [rating, setRating] =
+    useState("");
+
+  const [treatment, setTreatment] =
+    useState("");
+
+  // =====================================================
+  // CATEGORY / TREATMENT STATES
+  // =====================================================
+
+  const [categories, setCategories] =
+    useState<Category[]>([]);
+
+  const [
+    categoriesLoading,
+    setCategoriesLoading,
+  ] = useState(false);
+
+  // =====================================================
+  // PAGINATION
+  // =====================================================
+
+  const [page, setPage] =
+    useState(1);
+
+  // =====================================================
+  // DELETE STATES
+  // =====================================================
 
   const [deleteOpen, setDeleteOpen] =
     useState(false);
 
-  const [selectedFeedback, setSelectedFeedback] =
-    useState<Feedback | null>(null);
+  const [
+    selectedFeedback,
+    setSelectedFeedback,
+  ] = useState<Feedback | null>(null);
 
-  const filteredFeedbacks = useMemo(() => {
-    return feedbacks.filter((item) => {
-      const matchesSearch =
-        search === "" ||
-        item.patientName
-          .toLowerCase()
-          .includes(search.toLowerCase());
+  const [
+    deleteLoading,
+    setDeleteLoading,
+  ] = useState(false);
 
-      const matchesStatus =
-        status === "" ||
-        item.status === status;
+  // =====================================================
+  // LOAD CATEGORIES
+  // =====================================================
 
-      const matchesRating =
-        rating === "" ||
-        item.rating === Number(rating);
+  useEffect(() => {
+    let mounted = true;
 
-      const matchesTreatment =
-        treatment === "" ||
-        item.treatment
-          .toLowerCase()
-          .includes(treatment.toLowerCase());
+    const loadCategories =
+      async () => {
+        try {
+          setCategoriesLoading(
+            true
+          );
 
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesRating &&
-        matchesTreatment
+          const response =
+            await categoryAPI.getAll();
+
+          if (!mounted) {
+            return;
+          }
+
+          const data =
+            Array.isArray(response)
+              ? response
+              : Array.isArray(
+                    (
+                      response as {
+                        data?: Category[];
+                      }
+                    )?.data
+                  )
+                ? (
+                    response as {
+                      data: Category[];
+                    }
+                  ).data
+                : [];
+
+          setCategories(data);
+        } catch (error) {
+          console.error(
+            "LOAD FEEDBACK CATEGORIES ERROR:",
+            error
+          );
+
+          if (mounted) {
+            setCategories([]);
+          }
+        } finally {
+          if (mounted) {
+            setCategoriesLoading(
+              false
+            );
+          }
+        }
+      };
+
+    loadCategories();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // =====================================================
+  // PATIENT IMAGE URL
+  // =====================================================
+
+  const getImageUrl = (
+    image?: string | null
+  ): string => {
+    // -----------------------------------------------
+    // No image
+    // -----------------------------------------------
+
+    if (
+      !image ||
+      !image.trim()
+    ) {
+      return DEFAULT_IMAGE;
+    }
+
+    const imagePath =
+      image.trim();
+
+    // -----------------------------------------------
+    // Already complete URL
+    // -----------------------------------------------
+
+    if (
+      imagePath.startsWith(
+        "http://"
+      ) ||
+      imagePath.startsWith(
+        "https://"
+      ) ||
+      imagePath.startsWith(
+        "blob:"
+      ) ||
+      imagePath.startsWith(
+        "data:"
+      )
+    ) {
+      console.log(
+        "========== PATIENT IMAGE =========="
       );
-    });
-  }, [
-    feedbacks,
-    search,
-    status,
-    rating,
-    treatment,
-  ]);
 
-  const totalPages = Math.ceil(
-    filteredFeedbacks.length / ITEMS_PER_PAGE
-  );
+      console.log(
+        "IMAGE FROM API:",
+        image
+      );
 
-  const paginatedFeedbacks =
-    filteredFeedbacks.slice(
-      (page - 1) * ITEMS_PER_PAGE,
-      page * ITEMS_PER_PAGE
+      console.log(
+        "FINAL IMAGE URL:",
+        imagePath
+      );
+
+      console.log(
+        "==================================="
+      );
+
+      return imagePath;
+    }
+
+    // -----------------------------------------------
+    // API BASE URL
+    // -----------------------------------------------
+
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:5000";
+
+    // -----------------------------------------------
+    // Clean API URL
+    // -----------------------------------------------
+
+    const serverUrl =
+      apiUrl
+        .replace(/\/+$/, "")
+        .replace(/\/api$/, "");
+
+    // -----------------------------------------------
+    // Clean image path
+    // -----------------------------------------------
+
+    let cleanImagePath =
+      imagePath.replace(
+        /^\/+/,
+        ""
+      );
+
+    // -----------------------------------------------
+    // If database accidentally stores /api/
+    // remove it for static uploaded files.
+    //
+    // Example:
+    // /api/uploads/feedback/a.jpg
+    //
+    // becomes:
+    // uploads/feedback/a.jpg
+    // -----------------------------------------------
+
+    cleanImagePath =
+      cleanImagePath.replace(
+        /^api\//,
+        ""
+      );
+
+    // -----------------------------------------------
+    // Final URL
+    // -----------------------------------------------
+
+    const finalUrl =
+      `${serverUrl}/${cleanImagePath}`;
+
+    // -----------------------------------------------
+    // DEBUG
+    // -----------------------------------------------
+
+    console.log(
+      "========== PATIENT IMAGE =========="
     );
 
-  const handleDelete = (id: number) => {
-    const item = feedbacks.find(
-      (feedback) => feedback.id === id
+    console.log(
+      "IMAGE FROM API:",
+      image
     );
 
-    if (!item) return;
+    console.log(
+      "API URL:",
+      apiUrl
+    );
 
-    setSelectedFeedback(item);
-    setDeleteOpen(true);
+    console.log(
+      "SERVER URL:",
+      serverUrl
+    );
+
+    console.log(
+      "CLEAN IMAGE PATH:",
+      cleanImagePath
+    );
+
+    console.log(
+      "FINAL IMAGE URL:",
+      finalUrl
+    );
+
+    console.log(
+      "==================================="
+    );
+
+    return finalUrl;
   };
 
-  const confirmDelete = () => {
-    if (!selectedFeedback) return;
+  // =====================================================
+  // FILTER FEEDBACKS
+  // =====================================================
 
-    setFeedbacks((prev) =>
-      prev.filter(
-        (item) =>
-          item.id !== selectedFeedback.id
+  const filteredFeedbacks =
+    useMemo(() => {
+      const normalizedSearch =
+        search
+          .trim()
+          .toLowerCase();
+
+      const normalizedTreatment =
+        treatment
+          .trim()
+          .toLowerCase();
+
+      return feedbacks.filter(
+        (item) => {
+          const patientName =
+            String(
+              item.patientName ?? ""
+            )
+              .trim()
+              .toLowerCase();
+
+          const treatmentName =
+            String(
+              item.treatment ?? ""
+            )
+              .trim()
+              .toLowerCase();
+
+          const searchMatch =
+            normalizedSearch === "" ||
+            patientName.includes(
+              normalizedSearch
+            ) ||
+            treatmentName.includes(
+              normalizedSearch
+            );
+
+          const statusMatch =
+            status === "" ||
+            String(
+              item.status ?? ""
+            ) === status;
+
+          const ratingMatch =
+            rating === "" ||
+            Number(
+              item.rating
+            ) === Number(rating);
+
+          const treatmentMatch =
+            normalizedTreatment ===
+              "" ||
+            treatmentName ===
+              normalizedTreatment;
+
+          return (
+            searchMatch &&
+            statusMatch &&
+            ratingMatch &&
+            treatmentMatch
+          );
+        }
+      );
+    }, [
+      feedbacks,
+      search,
+      status,
+      rating,
+      treatment,
+    ]);
+
+  // =====================================================
+  // TOTAL PAGES
+  // =====================================================
+
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        filteredFeedbacks.length /
+          ITEMS_PER_PAGE
       )
     );
 
-    setDeleteOpen(false);
-    setSelectedFeedback(null);
+  // =====================================================
+  // KEEP PAGE VALID
+  // =====================================================
+
+  useEffect(() => {
+    if (
+      page > totalPages
+    ) {
+      setPage(totalPages);
+    }
+  }, [
+    page,
+    totalPages,
+  ]);
+
+  // =====================================================
+  // PAGINATED DATA
+  // =====================================================
+
+  const paginatedFeedbacks =
+    useMemo(() => {
+      const start =
+        (page - 1) *
+        ITEMS_PER_PAGE;
+
+      const end =
+        start +
+        ITEMS_PER_PAGE;
+
+      return filteredFeedbacks.slice(
+        start,
+        end
+      );
+    }, [
+      filteredFeedbacks,
+      page,
+    ]);
+
+  // =====================================================
+  // DELETE
+  // =====================================================
+
+  const handleDelete = (
+    id: number
+  ) => {
+    const feedback =
+      feedbacks.find(
+        (item) =>
+          item.id === id
+      );
+
+    if (!feedback) {
+      return;
+    }
+
+    setSelectedFeedback(
+      feedback
+    );
+
+    setDeleteOpen(true);
   };
 
-  const clearFilters = () => {
-    setSearch("");
-    setStatus("");
-    setRating("");
-    setTreatment("");
+  // =====================================================
+  // CONFIRM DELETE
+  // =====================================================
+
+  const confirmDelete =
+    async () => {
+      if (
+        !selectedFeedback ||
+        deleteLoading
+      ) {
+        return;
+      }
+
+      try {
+        setDeleteLoading(
+          true
+        );
+
+        await feedbackAPI.delete(
+          selectedFeedback.id
+        );
+
+        setFeedbacks(
+          (previous) =>
+            previous.filter(
+              (item) =>
+                item.id !==
+                selectedFeedback.id
+            )
+        );
+
+        setDeleteOpen(false);
+
+        setSelectedFeedback(
+          null
+        );
+      } catch (error) {
+        console.error(
+          "DELETE FEEDBACK ERROR:",
+          error
+        );
+
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Failed to delete feedback."
+        );
+      } finally {
+        setDeleteLoading(
+          false
+        );
+      }
+    };
+
+  // =====================================================
+  // STATUS UPDATE
+  // =====================================================
+
+  const handleStatusUpdate = (
+    id: number,
+    newStatus: Feedback["status"]
+  ) => {
+    setFeedbacks(
+      (previous) =>
+        previous.map(
+          (item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  status:
+                    newStatus,
+                }
+              : item
+        )
+    );
+  };
+
+  // =====================================================
+  // CLEAR FILTERS
+  // =====================================================
+
+  const handleClearFilters =
+    () => {
+      setSearch("");
+      setStatus("");
+      setRating("");
+      setTreatment("");
+      setPage(1);
+    };
+
+  // =====================================================
+  // FILTER HANDLERS
+  // =====================================================
+
+  const handleSearchChange = (
+    value: string
+  ) => {
+    setSearch(value);
     setPage(1);
   };
+
+  const handleStatusFilterChange =
+    (value: string) => {
+      setStatus(value);
+      setPage(1);
+    };
+
+  const handleRatingChange = (
+    value: string
+  ) => {
+    setRating(value);
+    setPage(1);
+  };
+
+  const handleTreatmentChange =
+    (value: string) => {
+      setTreatment(value);
+      setPage(1);
+    };
+
+  // =====================================================
+  // PAGE CHANGE
+  // =====================================================
+
+  const handlePageChange = (
+    newPage: number
+  ) => {
+    if (
+      newPage < 1 ||
+      newPage > totalPages
+    ) {
+      return;
+    }
+
+    setPage(newPage);
+  };
+
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   return (
     <div className="space-y-6">
 
+      {/* =================================================
+          FILTERS
+      ================================================= */}
+
       <FeedbackFilters
         search={search}
-        setSearch={(value) => {
-          setSearch(value);
-          setPage(1);
-        }}
+        setSearch={
+          handleSearchChange
+        }
         status={status}
-        setStatus={(value) => {
-          setStatus(value);
-          setPage(1);
-        }}
+        setStatus={
+          handleStatusFilterChange
+        }
         rating={rating}
-        setRating={(value) => {
-          setRating(value);
-          setPage(1);
-        }}
+        setRating={
+          handleRatingChange
+        }
         treatment={treatment}
-        setTreatment={(value) => {
-          setTreatment(value);
-          setPage(1);
-        }}
-        onClear={clearFilters}
+        setTreatment={
+          handleTreatmentChange
+        }
+        onClear={
+          handleClearFilters
+        }
+        categories={
+          categories
+        }
+        categoriesLoading={
+          categoriesLoading
+        }
       />
 
-      {/* Table starts here */}
-            <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:block">
+      {/* =================================================
+          TABLE
+      ================================================= */}
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
         <div className="overflow-x-auto">
-          <table className="min-w-full">
+
+          <table className="w-full min-w-[1000px] text-left">
 
             <thead className="bg-slate-50">
-              <tr className="border-b border-slate-200 text-left text-sm font-semibold text-slate-600">
 
-                <th className="px-6 py-4">Patient</th>
+              <tr>
 
-                <th className="px-6 py-4">Treatment</th>
+                <th className="px-5 py-4 text-sm font-semibold text-slate-700">
+                  Patient
+                </th>
 
-                <th className="px-6 py-4">Rating</th>
+                <th className="px-5 py-4 text-sm font-semibold text-slate-700">
+                  Treatment
+                </th>
 
-                <th className="px-6 py-4">Status</th>
+                <th className="px-5 py-4 text-sm font-semibold text-slate-700">
+                  Rating
+                </th>
 
-                <th className="px-6 py-4">Date</th>
+                <th className="px-5 py-4 text-sm font-semibold text-slate-700">
+                  Status
+                </th>
 
-                <th className="px-6 py-4 text-center">
+                <th className="px-5 py-4 text-sm font-semibold text-slate-700">
+                  Date
+                </th>
+
+                <th className="px-5 py-4 text-sm font-semibold text-slate-700">
                   Actions
                 </th>
 
               </tr>
+
             </thead>
 
             <tbody>
 
-              {paginatedFeedbacks.length === 0 ? (
+              {paginatedFeedbacks.length ===
+              0 ? (
 
                 <tr>
+
                   <td
                     colSpan={6}
-                    className="py-14 text-center text-slate-500"
+                    className="px-5 py-12 text-center"
                   >
-                    No feedback found.
+
+                    <div className="text-slate-500">
+
+                      <p className="text-lg font-medium">
+                        No feedback found
+                      </p>
+
+                      <p className="mt-1 text-sm">
+                        Try changing your
+                        filters or search.
+                      </p>
+
+                    </div>
+
                   </td>
+
                 </tr>
 
               ) : (
 
-                paginatedFeedbacks.map((feedback) => (
+                paginatedFeedbacks.map(
+                  (feedback) => {
 
-                  <tr
-                    key={feedback.id}
-                    className="border-b border-slate-100 transition hover:bg-slate-50"
-                  >
+                    // =====================================
+                    // IMAGE URL
+                    // =====================================
 
-                    {/* Patient */}
+                    const patientImage =
+                      getImageUrl(
+                        feedback.patientImage
+                      );
 
-                    <td className="px-6 py-4">
+                    return (
+                      <tr
+                        key={
+                          feedback.id
+                        }
+                        className="border-t border-slate-200 transition hover:bg-slate-50"
+                      >
 
-                      <div className="flex items-center gap-4">
+                        {/* =================================
+                            PATIENT
+                        ================================= */}
 
-                        <Image
-                          src={feedback.patientImage}
-                          alt={feedback.patientName}
-                          width={52}
-                          height={52}
-                          className="rounded-full object-cover"
-                        />
+                        <td className="px-5 py-4">
 
-                        <div>
+                          <div className="flex items-center gap-3">
 
-                          <h3 className="font-semibold text-slate-800">
-                            {feedback.patientName}
-                          </h3>
+                            <Image
+                              src={
+                                patientImage
+                              }
+                              alt={
+                                feedback.patientName ||
+                                "Patient"
+                              }
+                              width={50}
+                              height={50}
+                              className="h-12 w-12 rounded-full object-cover"
+                              unoptimized
+                              onError={(
+                                event
+                              ) => {
+                                const image =
+                                  event.currentTarget;
 
-                          <p className="text-sm text-slate-500">
-                            Patient
-                          </p>
+                                if (
+                                  image.src.includes(
+                                    DEFAULT_IMAGE
+                                  )
+                                ) {
+                                  return;
+                                }
 
-                        </div>
+                                image.src =
+                                  DEFAULT_IMAGE;
+                              }}
+                            />
 
-                      </div>
+                            <div>
 
-                    </td>
+                              <p className="font-semibold text-slate-900">
+                                {
+                                  feedback.patientName ||
+                                  "-"
+                                }
+                              </p>
 
-                    {/* Treatment */}
+                              <p className="text-sm text-slate-500">
+                                Patient
+                              </p>
 
-                    <td className="px-6 py-4">
-                      <span className="font-medium text-slate-700">
-                        {feedback.treatment}
-                      </span>
-                    </td>
+                            </div>
 
-                    {/* Rating */}
+                          </div>
 
-                    <td className="px-6 py-4">
-                      <RatingStars
-                        rating={feedback.rating}
-                      />
-                    </td>
+                        </td>
 
-                    {/* Status */}
+                        {/* =================================
+                            TREATMENT
+                        ================================= */}
 
-                    <td className="px-6 py-4">
-                      <FeedbackStatus
-                        status={feedback.status}
-                      />
-                    </td>
+                        <td className="px-5 py-4">
 
-                    {/* Date */}
+                          <span className="text-sm text-slate-700">
+                            {
+                              feedback.treatment ||
+                              "-"
+                            }
+                          </span>
 
-                    <td className="px-6 py-4 text-slate-600">
-                      {feedback.date}
-                    </td>
+                        </td>
 
-                    {/* Actions */}
+                        {/* =================================
+                            RATING
+                        ================================= */}
 
-                    <td className="px-6 py-4">
+                        <td className="px-5 py-4">
 
-                      <FeedbackActions
-                        id={feedback.id}
-                        onDelete={handleDelete}
-                      />
+                          <RatingStars
+                            rating={
+                              Number(
+                                feedback.rating
+                              ) || 0
+                            }
+                          />
 
-                    </td>
+                        </td>
 
-                  </tr>
+                        {/* =================================
+                            STATUS
+                        ================================= */}
 
-                ))
+                        <td className="px-5 py-4">
+
+                          <FeedbackStatus
+                            id={
+                              feedback.id
+                            }
+                            status={
+                              feedback.status
+                            }
+                            onUpdate={(
+                              newStatus
+                            ) =>
+                              handleStatusUpdate(
+                                feedback.id,
+                                newStatus
+                              )
+                            }
+                          />
+
+                        </td>
+
+                        {/* =================================
+                            DATE
+                        ================================= */}
+
+                        <td className="px-5 py-4">
+
+                          <span className="text-sm text-slate-600">
+                            {
+                              feedback.date ||
+                              "-"
+                            }
+                          </span>
+
+                        </td>
+
+                        {/* =================================
+                            ACTIONS
+                        ================================= */}
+
+                        <td className="px-5 py-4">
+
+                          <FeedbackActions
+                            id={
+                              feedback.id
+                            }
+                            onDelete={
+                              handleDelete
+                            }
+                          />
+
+                        </td>
+
+                      </tr>
+                    );
+                  }
+                )
 
               )}
 
             </tbody>
 
           </table>
+
         </div>
+
       </div>
 
-      {/* Mobile Cards */}
-            <div className="grid gap-4 lg:hidden">
-        {paginatedFeedbacks.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">
-            No feedback found.
-          </div>
-        ) : (
-          paginatedFeedbacks.map((feedback) => (
-            <div
-              key={feedback.id}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <div className="flex items-center gap-4">
-                <Image
-                  src={feedback.patientImage}
-                  alt={feedback.patientName}
-                  width={60}
-                  height={60}
-                  className="rounded-full object-cover"
-                />
+      {/* =================================================
+          PAGINATION
+      ================================================= */}
 
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-800">
-                    {feedback.patientName}
-                  </h3>
+      {filteredFeedbacks.length >
+        0 && (
 
-                  <p className="text-sm text-slate-500">
-                    {feedback.treatment}
-                  </p>
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
 
-                  <div className="mt-2">
-                    <RatingStars rating={feedback.rating} />
-                  </div>
-                </div>
-              </div>
+          <p className="text-sm text-slate-500">
 
-              <div className="mt-5 flex items-center justify-between">
-                <FeedbackStatus
-                  status={feedback.status}
-                />
-
-                <span className="text-sm text-slate-500">
-                  {feedback.date}
-                </span>
-              </div>
-
-              <div className="mt-5 border-t border-slate-100 pt-4">
-                <FeedbackActions
-                  id={feedback.id}
-                  onDelete={handleDelete}
-                />
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Pagination */}
-
-      {totalPages > 1 && (
-        <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm md:flex-row">
-
-          <p className="text-sm text-slate-600">
             Showing{" "}
-            <span className="font-semibold">
-              {(page - 1) * ITEMS_PER_PAGE + 1}
+
+            <span className="font-medium text-slate-700">
+              {(page - 1) *
+                ITEMS_PER_PAGE +
+                1}
             </span>
+
             {" "}to{" "}
-            <span className="font-semibold">
+
+            <span className="font-medium text-slate-700">
               {Math.min(
-                page * ITEMS_PER_PAGE,
+                page *
+                  ITEMS_PER_PAGE,
                 filteredFeedbacks.length
               )}
             </span>
+
             {" "}of{" "}
-            <span className="font-semibold">
-              {filteredFeedbacks.length}
-            </span>{" "}
-            feedbacks
+
+            <span className="font-medium text-slate-700">
+              {
+                filteredFeedbacks.length
+              }
+            </span>
+
+            {" "}feedbacks
+
           </p>
 
-          <div className="flex items-center gap-2">
+          {totalPages > 1 && (
 
-            <button
-              type="button"
-              disabled={page === 1}
-              onClick={() =>
-                setPage((prev) =>
-                  Math.max(prev - 1, 1)
-                )
-              }
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Previous
-            </button>
+            <div className="flex items-center gap-2">
 
-            {Array.from(
-              { length: totalPages },
-              (_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() =>
-                    setPage(index + 1)
+              {/* PREVIOUS */}
+
+              <button
+                type="button"
+                disabled={
+                  page === 1
+                }
+                onClick={() =>
+                  handlePageChange(
+                    page - 1
+                  )
+                }
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Previous
+              </button>
+
+              {/* PAGE NUMBERS */}
+
+              <div className="flex items-center gap-1">
+
+                {Array.from(
+                  {
+                    length:
+                      totalPages,
+                  },
+                  (
+                    _,
+                    index
+                  ) => {
+
+                    const pageNumber =
+                      index + 1;
+
+                    return (
+                      <button
+                        key={
+                          pageNumber
+                        }
+                        type="button"
+                        onClick={() =>
+                          handlePageChange(
+                            pageNumber
+                          )
+                        }
+                        className={`min-w-10 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                          page ===
+                          pageNumber
+                            ? "border-blue-600 bg-blue-600 text-white"
+                            : "border-slate-300 text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {
+                          pageNumber
+                        }
+                      </button>
+                    );
                   }
-                  className={`h-10 w-10 rounded-lg text-sm font-medium transition ${
-                    page === index + 1
-                      ? "bg-blue-600 text-white"
-                      : "border border-slate-200 hover:bg-slate-100"
-                  }`}
-                >
-                  {index + 1}
-                </button>
-              )
-            )}
+                )}
 
-            <button
-              type="button"
-              disabled={page === totalPages}
-              onClick={() =>
-                setPage((prev) =>
-                  Math.min(prev + 1, totalPages)
-                )
-              }
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Next
-            </button>
+              </div>
 
-          </div>
+              {/* NEXT */}
+
+              <button
+                type="button"
+                disabled={
+                  page ===
+                  totalPages
+                }
+                onClick={() =>
+                  handlePageChange(
+                    page + 1
+                  )
+                }
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+              </button>
+
+            </div>
+
+          )}
 
         </div>
+
       )}
 
-      {/* Delete Modal */}
+      {/* =================================================
+          DELETE MODAL
+      ================================================= */}
 
       <DeleteFeedbackModal
         open={deleteOpen}
         patientName={
-          selectedFeedback?.patientName ?? ""
+          selectedFeedback?.patientName ??
+          ""
         }
         onClose={() => {
-          setDeleteOpen(false);
-          setSelectedFeedback(null);
+          if (
+            !deleteLoading
+          ) {
+            setDeleteOpen(
+              false
+            );
+
+            setSelectedFeedback(
+              null
+            );
+          }
         }}
-        onConfirm={confirmDelete}
+        onConfirm={
+          confirmDelete
+        }
       />
-          </div>
+
+    </div>
   );
 }

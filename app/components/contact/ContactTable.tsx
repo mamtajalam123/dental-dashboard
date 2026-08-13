@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { contactData } from "@/data/contact";
-import { ContactItem } from "@/types/contact";
+import { Contact } from "@/app/types/contact";
+import { contactAPI } from "@/app/services/contact.api";
 
 import ContactStats from "./ContactStats";
 import ContactFilters from "./ContactFilters";
@@ -12,12 +12,25 @@ import ContactActions from "./ContactActions";
 import DeleteContactModal from "./DeleteContactModal";
 import ArchiveContactModal from "./ArchiveContactModal";
 
-
 const ITEMS_PER_PAGE = 8;
 
 export default function ContactTable() {
-  const [contacts, setContacts] =
-    useState<ContactItem[]>(contactData);
+  // ==========================================
+  // CONTACTS
+  // ==========================================
+
+  const [contacts, setContacts] = useState<Contact[]>([]);
+
+  // ==========================================
+  // LOADING / ERROR
+  // ==========================================
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // ==========================================
+  // FILTERS
+  // ==========================================
 
   const [search, setSearch] = useState("");
   const [subject, setSubject] = useState("");
@@ -26,22 +39,83 @@ export default function ContactTable() {
 
   const [page, setPage] = useState(1);
 
-  const [deleteOpen, setDeleteOpen] =
-    useState(false);
+  // ==========================================
+  // MODALS
+  // ==========================================
 
-  const [archiveOpen, setArchiveOpen] =
-    useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const [archiveOpen, setArchiveOpen] = useState(false);
 
   const [selectedContact, setSelectedContact] =
-    useState<ContactItem | null>(null);
+    useState<Contact | null>(null);
+
+  // ==========================================
+  // LOAD CONTACTS
+  // ==========================================
+
+  const loadContacts = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      console.log("=================================");
+      console.log("LOADING CONTACTS");
+      console.log("=================================");
+
+      const data = await contactAPI.getAll();
+
+      console.log("CONTACT API RESPONSE:", data);
+
+      setContacts(
+        Array.isArray(data)
+          ? data
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "CONTACT LOAD ERROR:",
+        error
+      );
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load contact messages."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==========================================
+  // INITIAL LOAD
+  // ==========================================
+
+  useEffect(() => {
+    loadContacts();
+  }, []);
+
+  // ==========================================
+  // FILTER CONTACTS
+  // ==========================================
 
   const filteredContacts = useMemo(() => {
     let data = contacts.filter((item) => {
+      const searchText =
+        search.toLowerCase().trim();
+
       const matchesSearch =
-        search === "" ||
-        item.patientName
+        searchText === "" ||
+        item.name
           .toLowerCase()
-          .includes(search.toLowerCase());
+          .includes(searchText) ||
+        item.email
+          .toLowerCase()
+          .includes(searchText) ||
+        item.phone
+          ?.toLowerCase()
+          .includes(searchText);
 
       const matchesSubject =
         subject === "" ||
@@ -58,12 +132,30 @@ export default function ContactTable() {
       );
     });
 
+    // ========================================
+    // SORT
+    // ========================================
+
     data.sort((a, b) => {
       if (sort === "newest") {
-        return b.id - a.id;
+        return (
+          new Date(
+            b.created_at ?? 0
+          ).getTime() -
+          new Date(
+            a.created_at ?? 0
+          ).getTime()
+        );
       }
 
-      return a.id - b.id;
+      return (
+        new Date(
+          a.created_at ?? 0
+        ).getTime() -
+        new Date(
+          b.created_at ?? 0
+        ).getTime()
+      );
     });
 
     return data;
@@ -75,8 +167,13 @@ export default function ContactTable() {
     sort,
   ]);
 
+  // ==========================================
+  // PAGINATION
+  // ==========================================
+
   const totalPages = Math.ceil(
-    filteredContacts.length / ITEMS_PER_PAGE
+    filteredContacts.length /
+      ITEMS_PER_PAGE
   );
 
   const paginatedContacts =
@@ -85,75 +182,162 @@ export default function ContactTable() {
       page * ITEMS_PER_PAGE
     );
 
+  // ==========================================
+  // STATS
+  // ==========================================
+
   const total = contacts.length;
 
   const newCount = contacts.filter(
-    (item) => item.status === "New"
+    (item) =>
+      item.status === "New"
   ).length;
 
   const repliedCount = contacts.filter(
-    (item) => item.status === "Replied"
+    (item) =>
+      item.status === "Replied"
   ).length;
 
-  const archivedCount = contacts.filter(
-    (item) => item.status === "Archived"
-  ).length;
+
+
+  // ==========================================
+  // DELETE OPEN
+  // ==========================================
 
   const handleDelete = (id: number) => {
     const item = contacts.find(
-      (contact) => contact.id === id
+      (contact) =>
+        contact.id === id
     );
 
-    if (!item) return;
+    if (!item) {
+      return;
+    }
 
     setSelectedContact(item);
     setDeleteOpen(true);
   };
 
+  // ==========================================
+  // ARCHIVE OPEN
+  // ==========================================
+
   const handleArchive = (id: number) => {
     const item = contacts.find(
-      (contact) => contact.id === id
+      (contact) =>
+        contact.id === id
     );
 
-    if (!item) return;
+    if (!item) {
+      return;
+    }
 
     setSelectedContact(item);
     setArchiveOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (!selectedContact) return;
+  // ==========================================
+  // CONFIRM DELETE
+  // ==========================================
 
-    setContacts((prev) =>
-      prev.filter(
-        (item) => item.id !== selectedContact.id
-      )
-    );
+  const confirmDelete = async () => {
+    if (!selectedContact) {
+      return;
+    }
 
-    setDeleteOpen(false);
-    setSelectedContact(null);
+    try {
+      await contactAPI.delete(
+        selectedContact.id
+      );
+
+      setContacts((previous) =>
+        previous.filter(
+          (item) =>
+            item.id !==
+            selectedContact.id
+        )
+      );
+
+      setDeleteOpen(false);
+      setSelectedContact(null);
+
+      alert(
+        "Contact deleted successfully."
+      );
+    } catch (error) {
+      console.error(
+        "DELETE CONTACT ERROR:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete contact."
+      );
+    }
   };
 
-  const confirmArchive = () => {
-    if (!selectedContact) return;
+  // ==========================================
+  // CONFIRM ARCHIVE
+  // ==========================================
 
-    setContacts((prev) =>
-      prev.map((item) =>
-        item.id === selectedContact.id
-          ? {
-              ...item,
-              status:
-                item.status === "Archived"
-                  ? "Read"
-                  : "Archived",
-            }
-          : item
-      )
-    );
+  const confirmArchive = async () => {
+    if (!selectedContact) {
+      return;
+    }
 
-    setArchiveOpen(false);
-    setSelectedContact(null);
+    try {
+      const newStatus =
+        selectedContact.status ===
+        "Read"
+          ? "New"
+          : "Read";
+
+      const updated =
+        await contactAPI.updateStatus(
+          selectedContact.id,
+          newStatus
+        );
+
+      setContacts((previous) =>
+        previous.map((item) =>
+          item.id ===
+          selectedContact.id
+            ? {
+                ...item,
+                ...(updated ?? {}),
+                status: newStatus,
+              }
+            : item
+        )
+      );
+
+      setArchiveOpen(false);
+      setSelectedContact(null);
+
+      alert(
+        newStatus === "Read"
+          ? "Contact marked as read."
+          : "Contact marked as new."
+      );
+    } catch (error) {
+      console.error(
+        "UPDATE CONTACT STATUS ERROR:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to update contact status."
+      );
+    }
   };
+
+  // ==========================================
+  // CLEAR FILTERS
+  // ==========================================
 
   const clearFilters = () => {
     setSearch("");
@@ -163,15 +347,68 @@ export default function ContactTable() {
     setPage(1);
   };
 
+  // ==========================================
+  // LOADING
+  // ==========================================
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+
+          <p className="text-slate-500">
+            Loading contact messages...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // ERROR
+  // ==========================================
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+          <p className="font-medium text-red-700">
+            {error}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={loadContacts}
+          className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // PAGE
+  // ==========================================
+
   return (
     <div className="space-y-6">
 
-      <ContactStats
-        total={total}
-        newCount={newCount}
-        repliedCount={repliedCount}
-        archivedCount={archivedCount}
-      />
+      {/* ======================================
+          STATS
+      ======================================= */}
+
+    <ContactStats
+  total={total}
+  newCount={newCount}
+  repliedCount={repliedCount}
+/>
+
+      {/* ======================================
+          FILTERS
+      ======================================= */}
 
       <ContactFilters
         search={search}
@@ -197,15 +434,17 @@ export default function ContactTable() {
         onClear={clearFilters}
       />
 
-      {/* Table Starts */}
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {/* ======================================
+          TABLE
+      ======================================= */}
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
         <div className="overflow-x-auto">
 
           <table className="min-w-full">
 
             <thead className="bg-slate-100">
-
               <tr>
 
                 <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
@@ -237,20 +476,16 @@ export default function ContactTable() {
                 </th>
 
               </tr>
-
             </thead>
 
             <tbody>
 
               {paginatedContacts.length === 0 ? (
-
                 <tr>
-
                   <td
                     colSpan={7}
                     className="py-16 text-center"
                   >
-
                     <h3 className="text-xl font-semibold text-slate-700">
                       No Contact Messages Found
                     </h3>
@@ -258,81 +493,106 @@ export default function ContactTable() {
                     <p className="mt-2 text-slate-500">
                       Try changing your search or filters.
                     </p>
-
                   </td>
-
                 </tr>
-
               ) : (
+                paginatedContacts.map(
+                  (item) => (
+                    <tr
+                      key={item.id}
+                      className="border-t border-slate-200 hover:bg-slate-50"
+                    >
 
-                paginatedContacts.map((item) => (
+                      {/* PATIENT */}
 
-                  <tr
-                    key={item.id}
-                    className="border-t border-slate-200 hover:bg-slate-50"
-                  >
+                      <td className="px-6 py-5">
+                        <div>
 
-                    <td className="px-6 py-5">
+                          <h4 className="font-semibold text-slate-800">
+                            {item.name}
+                          </h4>
 
-                      <div>
+                          <p className="mt-1 text-sm text-slate-500">
+                            {item.message.length >
+                            60
+                              ? `${item.message.slice(
+                                  0,
+                                  60
+                                )}...`
+                              : item.message}
+                          </p>
 
-                        <h4 className="font-semibold text-slate-800">
-                          {item.patientName}
-                        </h4>
+                        </div>
+                      </td>
 
-                        <p className="mt-1 text-sm text-slate-500">
-                          {item.message.length > 60
-                            ? `${item.message.slice(0, 60)}...`
-                            : item.message}
-                        </p>
+                      {/* SUBJECT */}
 
-                      </div>
+                      <td className="px-6 py-5">
 
-                    </td>
+                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                          {item.subject ??
+                            "General"}
+                        </span>
 
-                    <td className="px-6 py-5">
+                      </td>
 
-                      <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                        {item.subject}
-                      </span>
+                      {/* EMAIL */}
 
-                    </td>
+                      <td className="px-6 py-5 text-sm text-slate-600">
+                        {item.email}
+                      </td>
 
-                    <td className="px-6 py-5 text-sm text-slate-600">
-                      {item.email}
-                    </td>
+                      {/* PHONE */}
 
-                    <td className="px-6 py-5 text-sm text-slate-600">
-                      {item.phone}
-                    </td>
+                      <td className="px-6 py-5 text-sm text-slate-600">
+                        {item.phone ??
+                          "—"}
+                      </td>
 
-                    <td className="px-6 py-5 text-sm text-slate-600">
-                      {item.date}
-                    </td>
+                      {/* DATE */}
 
-                    <td className="px-6 py-5 text-center">
+                      <td className="px-6 py-5 text-sm text-slate-600">
+                        {item.created_at
+                          ? new Date(
+                              item.created_at
+                            ).toLocaleDateString()
+                          : "—"}
+                      </td>
 
-                      <ContactStatus
-                        status={item.status}
-                      />
+                      {/* STATUS */}
 
-                    </td>
+                      <td className="px-6 py-5 text-center">
 
-                    <td className="px-6 py-5">
+                        <ContactStatus
+                          status={
+                            item.status
+                          }
+                        />
 
-                      <ContactActions
-                        id={item.id}
-                        status={item.status}
-                        onArchive={handleArchive}
-                        onDelete={handleDelete}
-                      />
+                      </td>
 
-                    </td>
+                      {/* ACTIONS */}
 
-                  </tr>
+                      <td className="px-6 py-5">
 
-                ))
+                        <ContactActions
+                          id={item.id}
+                          status={
+                            item.status
+                          }
+                          onArchive={
+                            handleArchive
+                          }
+                          onDelete={
+                            handleDelete
+                          }
+                        />
 
+                      </td>
+
+                    </tr>
+                  )
+                )
               )}
 
             </tbody>
@@ -340,12 +600,13 @@ export default function ContactTable() {
           </table>
 
         </div>
-
       </div>
 
-      {/* Pagination */}
-            {totalPages > 1 && (
+      {/* ======================================
+          PAGINATION
+      ======================================= */}
 
+      {totalPages > 1 && (
         <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm md:flex-row">
 
           <p className="text-sm text-slate-600">
@@ -353,14 +614,17 @@ export default function ContactTable() {
             Showing
 
             <span className="mx-1 font-semibold">
-              {(page - 1) * ITEMS_PER_PAGE + 1}
+              {(page - 1) *
+                ITEMS_PER_PAGE +
+                1}
             </span>
 
             -
 
             <span className="mx-1 font-semibold">
               {Math.min(
-                page * ITEMS_PER_PAGE,
+                page *
+                  ITEMS_PER_PAGE,
                 filteredContacts.length
               )}
             </span>
@@ -368,7 +632,9 @@ export default function ContactTable() {
             of
 
             <span className="ml-1 font-semibold">
-              {filteredContacts.length}
+              {
+                filteredContacts.length
+              }
             </span>
 
             messages
@@ -381,35 +647,30 @@ export default function ContactTable() {
               type="button"
               disabled={page === 1}
               onClick={() =>
-                setPage((prev) =>
-                  Math.max(prev - 1, 1)
+                setPage((previous) =>
+                  Math.max(
+                    previous - 1,
+                    1
+                  )
                 )
               }
-              className="
-                rounded-lg
-                border
-                border-slate-300
-                px-4
-                py-2
-                text-sm
-                transition
-                hover:bg-slate-100
-                disabled:cursor-not-allowed
-                disabled:opacity-50
-              "
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Previous
             </button>
 
             {Array.from(
-              { length: totalPages },
+              {
+                length: totalPages,
+              },
               (_, index) => (
-
                 <button
                   key={index}
                   type="button"
                   onClick={() =>
-                    setPage(index + 1)
+                    setPage(
+                      index + 1
+                    )
                   }
                   className={`h-10 w-10 rounded-lg text-sm font-medium transition ${
                     page === index + 1
@@ -419,49 +680,40 @@ export default function ContactTable() {
                 >
                   {index + 1}
                 </button>
-
               )
             )}
 
             <button
               type="button"
-              disabled={page === totalPages}
+              disabled={
+                page === totalPages
+              }
               onClick={() =>
-                setPage((prev) =>
+                setPage((previous) =>
                   Math.min(
-                    prev + 1,
+                    previous + 1,
                     totalPages
                   )
                 )
               }
-              className="
-                rounded-lg
-                border
-                border-slate-300
-                px-4
-                py-2
-                text-sm
-                transition
-                hover:bg-slate-100
-                disabled:cursor-not-allowed
-                disabled:opacity-50
-              "
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Next
             </button>
 
           </div>
-
         </div>
-
       )}
 
-      {/* Delete Modal */}
+      {/* ======================================
+          DELETE MODAL
+      ======================================= */}
 
       <DeleteContactModal
         open={deleteOpen}
         patientName={
-          selectedContact?.patientName ?? ""
+          selectedContact?.name ??
+          ""
         }
         onClose={() => {
           setDeleteOpen(false);
@@ -470,16 +722,19 @@ export default function ContactTable() {
         onConfirm={confirmDelete}
       />
 
-      {/* Archive Modal */}
+      {/* ======================================
+          ARCHIVE MODAL
+      ======================================= */}
 
       <ArchiveContactModal
         open={archiveOpen}
         patientName={
-          selectedContact?.patientName ?? ""
+          selectedContact?.name ??
+          ""
         }
         archived={
           selectedContact?.status ===
-          "Archived"
+          "Read"
         }
         onClose={() => {
           setArchiveOpen(false);

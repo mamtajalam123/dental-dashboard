@@ -1,18 +1,14 @@
 "use client";
 
-import { X, Trash2 } from "lucide-react";
-import { Appointment } from "@/types/appointment";
-
-
 interface DeleteAppointmentModalProps {
 
-  open:boolean;
+  open: boolean;
 
-  appointment:Appointment;
+  loading: boolean;
 
-  onClose:()=>void;
+  onClose: () => void;
 
-  onConfirm:()=>void;
+  onConfirm: () => void;
 
 }
 
@@ -22,18 +18,16 @@ export default function DeleteAppointmentModal({
 
   open,
 
-  appointment,
+  loading,
 
   onClose,
 
   onConfirm,
 
-}:DeleteAppointmentModalProps){
+}: DeleteAppointmentModalProps) {
 
 
-
-  if(!open)
-    return null;
+  if(!open) return null;
 
 
 
@@ -48,7 +42,6 @@ export default function DeleteAppointmentModal({
         items-center
         justify-center
         bg-black/40
-        px-4
       "
     >
 
@@ -65,160 +58,36 @@ export default function DeleteAppointmentModal({
       >
 
 
-
-        {/* Header */}
-
-        <div
+        <h2
           className="
-            flex
-            items-center
-            justify-between
+            text-xl
+            font-semibold
+            text-slate-900
           "
         >
 
+          Delete Appointment
 
-          <div
-            className="
-              flex
-              items-center
-              gap-3
-            "
-          >
+        </h2>
 
-            <div
-              className="
-                flex
-                h-12
-                w-12
-                items-center
-                justify-center
-                rounded-full
-                bg-red-100
-              "
-            >
 
-              <Trash2
-                size={22}
-                className="text-red-600"
-              />
 
-            </div>
 
+        <p
+          className="
+            mt-3
+            text-sm
+            text-slate-600
+          "
+        >
 
+          Are you sure you want to delete this appointment?
+          This action cannot be undone.
 
-            <h2
-              className="
-                text-xl
-                font-bold
-                text-slate-800
-              "
-            >
+        </p>
 
-              Delete Appointment
 
-            </h2>
 
-
-          </div>
-
-
-
-
-
-          <button
-
-            onClick={onClose}
-
-            className="
-              rounded-lg
-              p-2
-              hover:bg-slate-100
-            "
-
-          >
-
-            <X size={20}/>
-
-          </button>
-
-
-
-        </div>
-
-
-
-
-
-
-
-
-        {/* Content */}
-
-
-        <div className="mt-6">
-
-
-          <p className="text-slate-600">
-
-            Are you sure you want to delete appointment of:
-
-          </p>
-
-
-
-          <div
-            className="
-              mt-4
-              rounded-xl
-              bg-slate-50
-              p-4
-            "
-          >
-
-
-            <h3
-              className="
-                font-semibold
-                text-slate-800
-              "
-            >
-
-              {appointment.patientName}
-
-            </h3>
-
-
-
-            <p className="text-sm text-slate-500">
-
-              {appointment.treatment}
-
-            </p>
-
-
-
-            <p className="text-sm text-slate-500">
-
-              {appointment.date}
-
-            </p>
-
-
-
-          </div>
-
-
-
-        </div>
-
-
-
-
-
-
-
-
-        {/* Footer Buttons */}
 
 
         <div
@@ -236,14 +105,15 @@ export default function DeleteAppointmentModal({
 
             onClick={onClose}
 
+            disabled={loading}
+
             className="
-              rounded-xl
+              rounded-lg
               border
-              px-5
-              py-2.5
-              font-medium
-              text-slate-700
-              hover:bg-slate-50
+              px-4
+              py-2
+              text-sm
+              hover:bg-slate-100
             "
 
           >
@@ -256,26 +126,33 @@ export default function DeleteAppointmentModal({
 
 
 
-
           <button
 
             onClick={onConfirm}
 
+            disabled={loading}
+
             className="
-              rounded-xl
+              rounded-lg
               bg-red-600
-              px-5
-              py-2.5
-              font-medium
+              px-4
+              py-2
+              text-sm
               text-white
               hover:bg-red-700
             "
 
           >
 
-            Delete
+            {
+              loading
+              ? "Deleting..."
+              : "Delete"
+            }
+
 
           </button>
+
 
 
 
@@ -286,11 +163,8 @@ export default function DeleteAppointmentModal({
       </div>
 
 
-
     </div>
 
-
   );
-
 
 }

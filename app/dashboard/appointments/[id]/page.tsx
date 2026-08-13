@@ -1,498 +1,590 @@
-import AppointmentStatus from "@/app/components/appointments/AppointmentStatus";
+"use client";
+
+import { useEffect, useState } from "react";
+
 import Link from "next/link";
 
+import { useParams, useRouter } from "next/navigation";
 
+import { ArrowLeft } from "lucide-react";
 
-export default async function AppointmentDetailsPage({
+import { appointmentAPI } from "@/app/services/appointment.api";
 
-params,
+import { Appointment } from "@/app/types/appointment";
 
-}:{
+import AppointmentUpdatePanel 
+from "@/app/components/appointments/AppointmentUpdatePanel";
 
-params:{
-id:string
-}
 
-}){
 
+export default function AppointmentDetailsPage() {
 
-const appointment = {
 
+  const router = useRouter();
 
-id:params.id,
+  const params = useParams();
 
-patient:"Rahul Sharma",
+  const id = Number(params.id);
 
-phone:"9876543210",
 
-email:"rahul@gmail.com",
 
-doctor:"Dr. Sultan",
+  const [appointment, setAppointment] =
+    useState<Appointment | null>(null);
 
-date:"10 July 2026",
 
-time:"10:30 AM",
+  const [loading, setLoading] =
+    useState(true);
 
-reason:"Root Canal Treatment",
 
-notes:
-"Patient complained about tooth pain. X-ray required before treatment.",
 
-status:"Confirmed"
 
 
-};
+  useEffect(() => {
 
+    if (!id || isNaN(id)) {
 
+      router.push(
+        "/dashboard/appointments"
+      );
 
+      return;
 
-return (
+    }
 
-<div className="space-y-6">
 
+    loadAppointment();
 
 
-{/* Header */}
+  }, [id]);
 
-<div className="
-flex
-justify-between
-items-center
-">
 
 
-<div>
 
-<h1 className="
-text-3xl
-font-bold
-">
 
-Appointment Details
 
-</h1>
 
+  const loadAppointment = async () => {
 
-<p className="
-text-gray-500
-">
+    try {
 
-Appointment ID: #{appointment.id}
+      setLoading(true);
 
-</p>
 
+      const data =
+        await appointmentAPI.getById(id);
 
-</div>
 
+      setAppointment(data);
 
 
 
-<div className="
-flex
-gap-3
-">
+    } catch(error) {
 
 
-<Link
+      console.error(error);
 
-href={`/appointments/${appointment.id}/edit`}
 
-className="
-px-5
-py-3
-rounded-xl
-bg-blue-600
-text-white
-font-semibold
-hover:bg-blue-700
-"
+      router.push(
+        "/dashboard/appointments"
+      );
 
->
 
-Edit
+    } finally {
 
-</Link>
+      setLoading(false);
 
+    }
 
+  };
 
 
-<button
 
-className="
-px-5
-py-3
-rounded-xl
-bg-red-600
-text-white
-font-semibold
-hover:bg-red-700
-"
 
->
 
-Delete
 
-</button>
 
+  if (loading) {
 
+    return (
 
-</div>
+      <div className="
+        rounded-2xl
+        border
+        bg-white
+        p-10
+        text-center
+      ">
 
+        Loading Appointment...
 
+      </div>
 
-</div>
+    );
 
+  }
 
 
 
 
 
-{/* Main Grid */}
 
-<div className="
-grid
-lg:grid-cols-3
-gap-6
-">
 
+  if (!appointment) {
 
+    return (
 
+      <div className="
+        rounded-2xl
+        border
+        bg-white
+        p-10
+        text-center
+      ">
 
+        Appointment not found.
 
-{/* Patient Card */}
+      </div>
 
-<div className="
-lg:col-span-2
-bg-white
-border
-rounded-2xl
-shadow-sm
-p-6
-">
+    );
 
+  }
 
-<h2 className="
-text-xl
-font-semibold
-mb-5
-">
 
-Patient Information
 
-</h2>
 
 
 
-<div className="
-grid
-md:grid-cols-2
-gap-5
-">
+  const statusColor = {
 
+    Pending:
+      "bg-yellow-100 text-yellow-700",
 
-<div>
+    Confirmed:
+      "bg-blue-100 text-blue-700",
 
-<p className="
-text-sm
-text-gray-500
-">
+    Completed:
+      "bg-green-100 text-green-700",
 
-Name
+    Cancelled:
+      "bg-red-100 text-red-700",
 
-</p>
+  };
 
-<p className="
-font-medium
-">
 
-{appointment.patient}
 
-</p>
 
-</div>
 
 
 
+  return (
 
+    <div className="space-y-6">
 
-<div>
 
-<p className="
-text-sm
-text-gray-500
-">
 
-Phone
+      {/* Header */}
 
-</p>
+      <div className="
+        flex
+        items-center
+        justify-between
+      ">
 
-<p className="
-font-medium
-">
 
-{appointment.phone}
+        <div>
 
-</p>
+          <h1 className="
+            text-3xl
+            font-bold
+          ">
 
-</div>
+            Appointment Details
 
+          </h1>
 
 
+          <p className="text-slate-500">
 
+            Appointment ID #{appointment.id}
 
-<div>
+          </p>
 
-<p className="
-text-sm
-text-gray-500
-">
 
-Email
+        </div>
 
-</p>
 
-<p className="
-font-medium
-">
 
-{appointment.email}
 
-</p>
 
-</div>
+        <div className="
+          flex
+          items-center
+          gap-3
+        ">
 
 
+          <button
 
+            onClick={() => router.back()}
 
-<div>
+            className="
+              flex
+              items-center
+              gap-2
+              rounded-lg
+              border
+              border-slate-300
+              px-4
+              py-2
+              text-sm
+              hover:bg-slate-100
+            "
 
-<p className="
-text-sm
-text-gray-500
-">
+          >
 
-Doctor
+            <ArrowLeft size={18}/>
 
-</p>
+            Back
 
-<p className="
-font-medium
-">
+          </button>
 
-{appointment.doctor}
 
-</p>
 
-</div>
 
 
+          <Link
 
-</div>
+            href={`/dashboard/appointments/edit/${appointment.id}`}
 
+            className="
+              rounded-lg
+              bg-slate-900
+              px-5
+              py-2
+              text-white
+              hover:bg-slate-800
+            "
 
+          >
 
-</div>
+            Edit
 
+          </Link>
 
 
+        </div>
 
 
+      </div>
 
 
-{/* Status Card */}
 
-<div className="
-bg-white
-border
-rounded-2xl
-shadow-sm
-p-6
-">
 
 
-<h2 className="
-text-xl
-font-semibold
-mb-5
-">
 
-Status
 
-</h2>
 
+      {/* Patient Information */}
 
+      <div className="
+        rounded-2xl
+        border
+        bg-white
+        p-6
+      ">
 
-<AppointmentStatus
 
-status={appointment.status as any}
+        <h2 className="
+          mb-6
+          text-xl
+          font-semibold
+        ">
 
-/>
+          Patient Information
 
+        </h2>
 
-</div>
 
 
+        <div className="
+          grid
+          gap-6
+          md:grid-cols-2
+        ">
 
 
 
+          <div>
 
-</div>
+            <p className="text-sm text-slate-500">
+              Patient Name
+            </p>
 
+            <p className="font-medium">
+              {appointment.patientName}
+            </p>
 
+          </div>
 
 
 
 
 
-{/* Appointment Information */}
+          <div>
 
-<div className="
-bg-white
-border
-rounded-2xl
-shadow-sm
-p-6
-">
+            <p className="text-sm text-slate-500">
+              Phone
+            </p>
 
+            <p>
+              {appointment.phone}
+            </p>
 
-<h2 className="
-text-xl
-font-semibold
-mb-5
-">
+          </div>
 
-Appointment Information
 
-</h2>
 
 
 
-<div className="
-grid
-md:grid-cols-3
-gap-5
-">
+          <div>
 
+            <p className="text-sm text-slate-500">
+              Email
+            </p>
 
+            <p>
+              {appointment.email || "-"}
+            </p>
 
-<div>
+          </div>
 
-<p className="
-text-sm
-text-gray-500
-">
 
-Date
 
-</p>
 
-<p className="font-medium">
 
-{appointment.date}
+          <div>
 
-</p>
+            <p className="text-sm text-slate-500">
+              Doctor
+            </p>
 
-</div>
+            <p>
+              {appointment.doctor}
+            </p>
 
+          </div>
 
 
 
-<div>
+        </div>
 
-<p className="
-text-sm
-text-gray-500
-">
 
-Time
+      </div>
 
-</p>
 
-<p className="font-medium">
 
-{appointment.time}
 
-</p>
 
-</div>
 
 
 
 
-<div>
+      {/* Appointment Information */}
 
-<p className="
-text-sm
-text-gray-500
-">
+      <div className="
+        rounded-2xl
+        border
+        bg-white
+        p-6
+      ">
 
-Treatment
 
-</p>
+        <h2 className="
+          mb-6
+          text-xl
+          font-semibold
+        ">
 
-<p className="font-medium">
+          Appointment Information
 
-{appointment.reason}
+        </h2>
 
-</p>
 
-</div>
 
 
+        <div className="
+          grid
+          gap-6
+          md:grid-cols-3
+        ">
 
-</div>
 
 
+          <div>
 
-</div>
+            <p className="text-sm text-slate-500">
+              Treatment
+            </p>
 
+            <p>
+              {appointment.treatment}
+            </p>
 
+          </div>
 
 
 
 
+          <div>
 
+            <p className="text-sm text-slate-500">
+              Appointment Date
+            </p>
 
-{/* Notes */}
+            <p>
+              {appointment.appointmentDate}
+            </p>
 
-<div className="
-bg-white
-border
-rounded-2xl
-shadow-sm
-p-6
-">
+          </div>
 
 
-<h2 className="
-text-xl
-font-semibold
-mb-3
-">
 
-Doctor Notes
 
-</h2>
 
+          <div>
 
-<p className="
-text-gray-600
-leading-relaxed
-">
+            <p className="text-sm text-slate-500">
+              Appointment Time
+            </p>
 
-{appointment.notes}
+            <p>
+              {appointment.appointmentTime}
+            </p>
 
-</p>
+          </div>
 
 
 
-</div>
+        </div>
 
 
+      </div>
 
 
-</div>
 
-)
+
+
+
+
+
+
+      {/* Message */}
+
+      <div className="
+        rounded-2xl
+        border
+        bg-white
+        p-6
+      ">
+
+
+        <h2 className="
+          mb-4
+          text-xl
+          font-semibold
+        ">
+
+          Message
+
+        </h2>
+
+
+
+        <p className="
+          leading-7
+          text-slate-600
+        ">
+
+          {appointment.message || "-"}
+
+        </p>
+
+
+      </div>
+
+
+
+
+
+
+
+
+
+      {/* Status */}
+
+      <div className="
+        rounded-2xl
+        border
+        bg-white
+        p-6
+      ">
+
+
+        <h2 className="
+          mb-4
+          text-xl
+          font-semibold
+        ">
+
+          Appointment Status
+
+        </h2>
+
+
+
+
+        <span
+          className={`
+            inline-flex
+            rounded-full
+            px-4
+            py-2
+            text-sm
+            font-medium
+            ${statusColor[appointment.status]}
+          `}
+        >
+
+          {appointment.status}
+
+        </span>
+
+
+      </div>
+
+
+
+
+
+
+
+
+      {/* Update Status & Payment */}
+
+      <AppointmentUpdatePanel
+
+        appointment={appointment}
+
+        onUpdate={loadAppointment}
+
+      />
+
+
+
+
+
+    </div>
+
+  );
 
 }

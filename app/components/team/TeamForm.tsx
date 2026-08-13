@@ -1,36 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import Image from "next/image";
+
 import {
   Save,
   Upload,
   X,
 } from "lucide-react";
-import { teamDesignations } from "@/app/data/teamDesignations";
 
-
+import { designationAPI } from "@/app/services/designation.api";
+import { Designation } from "@/app/types/designation";
 
 
 export type TeamFormData = {
 
-  name: string;
+  id?: number;
 
-  designation: string;
+  name:string;
 
-  specialization: string;
+  designationId:number;
 
-  experience: string;
+  specialization:string;
 
-  email: string;
+  experience:string;
 
-  phone: string;
+  email:string;
 
-  bio: string;
+  phone:string;
 
-  image: string;
+  bio:string;
 
-  status: "Active" | "Inactive";
+  image?:string | null;
+
+  status:"Active" | "Inactive";
 
 };
 
@@ -38,111 +45,203 @@ export type TeamFormData = {
 
 type TeamFormProps = {
 
-  initialData?: TeamFormData;
+  initialData?:TeamFormData;
 
-  submitLabel?: string;
+  submitLabel?:string;
 
-  onSubmit: (data: TeamFormData) => void;
+  onSubmit:
+  (
+    data:FormData
+  )=>Promise<void>;
 
 };
 
 
 
+const experiences=[
 
-
-const experiences = [
-
-  "1 Year",
-  "2 Years",
-  "3 Years",
-  "5 Years",
-  "8 Years",
-  "10 Years",
-  "12 Years",
-  "15+ Years",
+"1 Year",
+"2 Years",
+"3 Years",
+"5 Years",
+"8 Years",
+"10 Years",
+"12 Years",
+"15+ Years"
 
 ];
 
 
 
+const defaultData:TeamFormData={
 
+name:"",
 
-const defaultData: TeamFormData = {
+designationId:0,
 
-  name: "",
+specialization:"",
 
-  designation: "",
+experience:"",
 
-  specialization: "",
+email:"",
 
-  experience: "",
+phone:"",
 
-  email: "",
+bio:"",
 
-  phone: "",
+image:null,
 
-  bio: "",
-
-  image: "",
-
-  status: "Active",
+status:"Active"
 
 };
-
-
 
 
 
 export default function TeamForm({
 
-  initialData = defaultData,
+initialData,
 
-  submitLabel = "Save Team Member",
+submitLabel="Save Team Member",
 
-  onSubmit,
+onSubmit
 
-}: TeamFormProps) {
-
-
-
-const [formData,setFormData] =
-
-useState<TeamFormData>(initialData);
+}:TeamFormProps){
 
 
 
-const [preview,setPreview] =
-
-useState(initialData.image);
-
-
-
-
+const [formData,setFormData]=
+useState<TeamFormData>({
+...defaultData,
+...initialData
+});
 
 
 
-const handleChange = (
+const [designations,setDesignations]=
+useState<Designation[]>([]);
 
-e:React.ChangeEvent<
 
-HTMLInputElement |
 
-HTMLTextAreaElement |
+const [loading,setLoading]=
+useState(false);
 
-HTMLSelectElement
 
->
 
-)=>{
+const [loadingDesignations,setLoadingDesignations]=
+useState(true);
+
+
+
+const [imageFile,setImageFile]=
+useState<File|null>(null);
+
+
+
+const [preview,setPreview]=
+useState<string>("");
+
+
+
+// ================================
+// EDIT DATA LOAD
+// ================================
+
+
+useEffect(()=>{
 
 
 setFormData({
 
-...formData,
+...defaultData,
 
-[e.target.name]:e.target.value,
+...initialData
 
 });
+
+
+if(initialData?.image){
+
+setPreview(initialData.image);
+
+}
+else{
+
+setPreview("");
+
+}
+
+
+},[initialData]);
+
+
+
+
+// ================================
+// LOAD DESIGNATIONS
+// ================================
+
+
+useEffect(()=>{
+
+loadDesignations();
+
+},[]);
+
+
+
+const loadDesignations=async()=>{
+
+
+try{
+
+
+setLoadingDesignations(true);
+
+
+const response =
+await designationAPI.getAll();
+
+
+
+const data =
+
+Array.isArray(response)
+
+?
+response
+
+:
+
+response.data ?? [];
+
+
+
+setDesignations(
+
+data.filter(
+(item:Designation)=>
+item.status==="Active"
+)
+
+);
+
+
+
+}
+catch(error){
+
+console.error(
+"Designation Load Error",
+error
+);
+
+
+}
+finally{
+
+setLoadingDesignations(false);
+
+}
 
 
 };
@@ -151,16 +250,73 @@ setFormData({
 
 
 
+// ================================
+// INPUT CHANGE
+// ================================
 
 
-const handleImage = (
+const handleChange=(
 
-e:React.ChangeEvent<HTMLInputElement>
+e:
+React.ChangeEvent<
+HTMLInputElement |
+HTMLTextAreaElement |
+HTMLSelectElement
+>
 
 )=>{
 
 
-const file = e.target.files?.[0];
+const {
+name,
+value
+}=e.target;
+
+
+
+setFormData(prev=>({
+
+...prev,
+
+
+[name]:
+
+name==="designationId"
+
+?
+
+Number(value)
+
+:
+
+value
+
+
+}));
+
+
+
+};
+
+
+
+
+
+// ================================
+// IMAGE
+// ================================
+
+
+const handleImageChange=(
+
+e:
+React.ChangeEvent<HTMLInputElement>
+
+)=>{
+
+
+const file =
+e.target.files?.[0];
 
 
 if(!file)
@@ -168,21 +324,17 @@ return;
 
 
 
-const url = URL.createObjectURL(file);
+setImageFile(file);
+
+
+
+const url =
+URL.createObjectURL(file);
 
 
 
 setPreview(url);
 
-
-
-setFormData({
-
-...formData,
-
-image:file.name,
-
-});
 
 
 };
@@ -191,9 +343,12 @@ image:file.name,
 
 
 
+// ================================
+// SUBMIT
+// ================================
 
 
-const handleSubmit = (
+const handleSubmit=async(
 
 e:React.FormEvent
 
@@ -208,7 +363,7 @@ if(
 
 !formData.name ||
 
-!formData.designation ||
+formData.designationId===0 ||
 
 !formData.email ||
 
@@ -218,18 +373,129 @@ if(
 
 
 alert(
-"Please fill all required fields."
+"Please fill required fields"
 );
 
 
 return;
 
+}
+
+
+
+try{
+
+
+setLoading(true);
+
+
+
+const payload =
+new FormData();
+
+
+
+payload.append(
+"name",
+formData.name
+);
+
+
+
+payload.append(
+"designationId",
+String(
+formData.designationId
+)
+);
+
+
+
+payload.append(
+"specialization",
+formData.specialization
+);
+
+
+
+payload.append(
+"experience",
+formData.experience
+);
+
+
+
+payload.append(
+"email",
+formData.email
+);
+
+
+
+payload.append(
+"phone",
+formData.phone
+);
+
+
+
+payload.append(
+"bio",
+formData.bio
+);
+
+
+
+payload.append(
+"status",
+formData.status
+);
+
+
+
+if(imageFile){
+
+payload.append(
+"image",
+imageFile
+);
 
 }
 
 
 
-onSubmit(formData);
+console.log(
+ "TEAM FORM DATA",
+ Object.fromEntries(payload)
+);
+
+
+
+await onSubmit(payload);
+
+
+
+}
+catch(error){
+
+
+console.error(
+"TEAM SAVE ERROR",
+error
+);
+
+
+throw error;
+
+
+}
+finally{
+
+
+setLoading(false);
+
+
+}
 
 
 };
@@ -238,20 +504,33 @@ onSubmit(formData);
 
 
 
+// ================================
+// RESET
+// ================================
 
 
-const handleReset = ()=>{
+const handleReset=()=>{
 
 
-setFormData(defaultData);
+setFormData({
+
+...defaultData,
+
+...initialData
+
+});
 
 
-setPreview("");
+setImageFile(null);
+
+
+
+setPreview(
+initialData?.image ?? ""
+);
 
 
 };
-
-
 
 
 
@@ -259,46 +538,16 @@ setPreview("");
 
 return (
 
-
 <form
-
 onSubmit={handleSubmit}
-
 className="space-y-6"
-
 >
 
 
+<div className="rounded-2xl border bg-white p-6">
 
 
-
-{/* Information */}
-
-
-
-<div
-
-className="
-rounded-2xl
-border
-border-slate-200
-bg-white
-p-6
-shadow-sm
-"
-
->
-
-
-<h2
-
-className="
-mb-6
-text-xl
-font-semibold
-"
-
->
+<h2 className="mb-6 text-xl font-semibold">
 
 Team Member Information
 
@@ -306,146 +555,59 @@ Team Member Information
 
 
 
-
-
-<div
-
-className="
-grid
-gap-5
-md:grid-cols-2
-"
-
->
-
-
-
-
-
-{/* Name */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-font-medium
-">
-
-Full Name *
-
-</label>
+<div className="grid gap-5 md:grid-cols-2">
 
 
 
 <input
 
-
-type="text"
-
-
 name="name"
-
 
 value={formData.name}
 
-
 onChange={handleChange}
 
+placeholder="Full Name"
 
-placeholder="Dr. Sultan Ahmed"
-
-
-className="
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-py-3
-outline-none
-focus:border-blue-600
-"
+className="rounded-xl border px-4 py-3"
 
 />
 
 
-</div>
-
-
-
-
-
-
-
-
-
-{/* Designation From Categories */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-font-medium
-">
-
-Designation *
-
-</label>
 
 
 
 <select
 
+name="designationId"
 
-name="designation"
-
-
-value={formData.designation}
-
+value={formData.designationId}
 
 onChange={handleChange}
 
+disabled={loadingDesignations}
 
-className="
-w-full
-rounded-xl
-border
-border-slate-300
-bg-white
-px-4
-py-3
-outline-none
-focus:border-blue-600
-"
+className="rounded-xl border px-4 py-3"
 
 >
 
 
-<option value="">
-
+<option value={0}>
 Select Designation
-
 </option>
-
 
 
 
 {
 
-teamDesignations.map((item)=>(
+designations.map(item=>(
 
 
 <option
 
 key={item.id}
 
-value={item.name}
+value={item.id}
 
 >
 
@@ -454,437 +616,162 @@ value={item.name}
 </option>
 
 
-
 ))
 
 }
 
 
-
 </select>
 
 
-</div>
-
-
-
-
-
-
-
-
-
-{/* Specialization */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-font-medium
-">
-
-Specialization
-
-</label>
 
 
 
 <input
 
-
-type="text"
-
-
 name="specialization"
-
 
 value={formData.specialization}
 
-
 onChange={handleChange}
 
+placeholder="Specialization"
 
-placeholder="Dental Implant"
-
-
-className="
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-py-3
-outline-none
-focus:border-blue-600
-"
+className="rounded-xl border px-4 py-3"
 
 />
 
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Experience */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-font-medium
-">
-
-Experience
-
-</label>
 
 
 
 
 <select
 
-
 name="experience"
-
 
 value={formData.experience}
 
-
 onChange={handleChange}
 
-
-className="
-w-full
-rounded-xl
-border
-border-slate-300
-bg-white
-px-4
-py-3
-outline-none
-focus:border-blue-600
-"
+className="rounded-xl border px-4 py-3"
 
 >
 
 
 <option value="">
-
-Select Experience
-
+Experience
 </option>
-
 
 
 {
 
-experiences.map((item)=>(
+experiences.map(item=>(
 
-
-<option
-
-key={item}
-
-value={item}
-
->
-
+<option key={item}>
 {item}
-
 </option>
-
-
 
 ))
 
 }
 
 
-
 </select>
 
 
-</div>
 
-
-
-
-
-
-
-
-
-{/* Email */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-font-medium
-">
-
-Email *
-
-</label>
 
 
 <input
-
-
-type="email"
-
 
 name="email"
 
-
 value={formData.email}
-
 
 onChange={handleChange}
 
+placeholder="Email"
 
-placeholder="doctor@gmail.com"
-
-
-className="
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-py-3
-outline-none
-focus:border-blue-600
-"
+className="rounded-xl border px-4 py-3"
 
 />
 
 
-</div>
 
-
-
-
-
-
-
-
-
-{/* Phone */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-font-medium
-">
-
-Phone *
-
-</label>
 
 
 <input
 
-
-type="tel"
-
-
 name="phone"
-
 
 value={formData.phone}
 
-
 onChange={handleChange}
 
+placeholder="Phone"
 
-placeholder="+91 9876543210"
-
-
-className="
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-py-3
-outline-none
-focus:border-blue-600
-"
+className="rounded-xl border px-4 py-3"
 
 />
 
 
-</div>
-
-
-
-
-
-
-
-
-
-{/* Status */}
-
-
-<div className="md:col-span-2">
-
-
-<label className="
-mb-2
-block
-font-medium
-">
-
-Status
-
-</label>
 
 
 
 <select
 
-
 name="status"
-
 
 value={formData.status}
 
-
 onChange={handleChange}
 
-
-className="
-w-full
-rounded-xl
-border
-border-slate-300
-bg-white
-px-4
-py-3
-outline-none
-focus:border-blue-600
-"
+className="rounded-xl border px-4 py-3"
 
 >
 
 
 <option value="Active">
-
 Active
-
 </option>
 
 
 <option value="Inactive">
-
 Inactive
-
 </option>
-
 
 
 </select>
 
 
-</div>
-
-
 
 </div>
 
 
-
 </div>
 
 
 
 
 
-
-
-
-
-{/* Bio */}
-
-
-<div
-
-className="
-rounded-2xl
-border
-border-slate-200
-bg-white
-p-6
-shadow-sm
-"
-
->
-
-
-<h2 className="
-mb-5
-text-xl
-font-semibold
-">
-
-Biography
-
-</h2>
-
+<div className="rounded-2xl border bg-white p-6">
 
 
 <textarea
 
-
-rows={6}
-
-
 name="bio"
 
+rows={5}
 
 value={formData.bio}
 
-
 onChange={handleChange}
 
+placeholder="Biography"
 
-placeholder="Write a short biography..."
-
-
-className="
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-py-3
-outline-none
-focus:border-blue-600
-"
+className="w-full rounded-xl border px-4 py-3"
 
 />
-
 
 
 </div>
@@ -894,115 +781,53 @@ focus:border-blue-600
 
 
 
+<div className="rounded-2xl border bg-white p-6">
 
 
-
-{/* Image */}
-
-
-<div
-
-className="
-rounded-2xl
-border
-border-slate-200
-bg-white
-p-6
-shadow-sm
-"
-
->
+<label className="flex cursor-pointer gap-3">
 
 
-<h2 className="
-mb-5
-text-xl
-font-semibold
-">
-
-Profile Photo
-
-</h2>
-
-
-
-<label
-
-className="
-flex
-cursor-pointer
-items-center
-justify-center
-gap-3
-rounded-xl
-border-2
-border-dashed
-border-slate-300
-p-8
-hover:border-blue-600
-"
-
->
-
-
-<Upload size={22}/>
-
-
-<span>
+<Upload/>
 
 Upload Image
-
-</span>
-
 
 
 <input
 
-
 type="file"
-
 
 hidden
 
-
 accept="image/*"
 
-
-onChange={handleImage}
-
+onChange={handleImageChange}
 
 />
 
 
 </label>
-
 
 
 
 
 {
 
-preview && (
+preview &&
 
-
-<div className="relative mt-6 w-52">
+<div className="relative mt-5 h-40 w-40">
 
 
 <Image
 
 src={preview}
 
-alt="Preview"
+alt="preview"
 
-width={200}
+fill
 
-height={200}
+sizes="160px"
 
-className="
-rounded-xl
-border
-object-cover
-"
+className="rounded-xl object-cover"
 
 />
 
@@ -1014,30 +839,13 @@ type="button"
 
 onClick={()=>{
 
-
 setPreview("");
 
-
-setFormData({
-
-...formData,
-
-image:""
-
-});
-
+setImageFile(null);
 
 }}
 
-className="
-absolute
--right-2
--top-2
-rounded-full
-bg-red-600
-p-1
-text-white
-"
+className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white"
 
 >
 
@@ -1048,11 +856,7 @@ text-white
 </button>
 
 
-
 </div>
-
-
-)
 
 }
 
@@ -1064,19 +868,7 @@ text-white
 
 
 
-
-
-
-
-{/* Buttons */}
-
-
-
-<div className="
-flex
-justify-end
-gap-3
-">
+<div className="flex justify-end gap-3">
 
 
 <button
@@ -1085,14 +877,7 @@ type="button"
 
 onClick={handleReset}
 
-className="
-rounded-xl
-border
-border-slate-300
-px-6
-py-3
-hover:bg-slate-100
-"
+className="rounded-xl border px-6 py-3"
 
 >
 
@@ -1103,23 +888,11 @@ Reset
 
 
 
-
 <button
 
-type="submit"
+disabled={loading}
 
-className="
-flex
-items-center
-gap-2
-rounded-xl
-bg-blue-600
-px-6
-py-3
-font-medium
-text-white
-hover:bg-blue-700
-"
+className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-white"
 
 >
 
@@ -1127,7 +900,13 @@ hover:bg-blue-700
 <Save size={18}/>
 
 
-{submitLabel}
+{
+loading
+?
+"Saving..."
+:
+submitLabel
+}
 
 
 </button>
@@ -1139,9 +918,7 @@ hover:bg-blue-700
 
 
 
-
 </form>
-
 
 );
 

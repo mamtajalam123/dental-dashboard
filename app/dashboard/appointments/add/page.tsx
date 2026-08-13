@@ -1,688 +1,88 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, Save } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
+import AppointmentForm, {
+  AppointmentFormData,
+} from "@/app/components/appointments/AppointmentForm";
+
+import { appointmentAPI } from "@/app/services/appointment.api";
 
 export default function AddAppointmentPage() {
+  const router = useRouter();
 
+  const [loading, setLoading] = useState(false);
 
-  const [formData,setFormData] = useState({
+  const handleCreate = async (
+    data: AppointmentFormData
+  ) => {
+    try {
+      setLoading(true);
 
-    patientName:"",
-    phone:"",
-    email:"",
-    treatment:"",
-    doctor:"",
-    date:"",
-    time:"",
-    status:"Pending",
-    payment:"Unpaid",
+      await appointmentAPI.create(data);
 
-  });
+      alert("Appointment created successfully.");
 
+      router.push("/dashboard/appointments");
+    } catch (error: any) {
+      console.error("Create Appointment Error:", error);
 
-
-
-
-  const handleChange =(
-    e:React.ChangeEvent<
-      HTMLInputElement |
-      HTMLSelectElement
-    >
-  )=>{
-
-
-    setFormData({
-
-      ...formData,
-
-      [e.target.name]:
-      e.target.value,
-
-    });
-
-
+      alert(
+        error.message ||
+          "Failed to create appointment."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
-
-
-
-
-
-
-  const handleSubmit =(
-    e:React.FormEvent
-  )=>{
-
-
-    e.preventDefault();
-
-
-    console.log(formData);
-
-
-    // API will connect here later
-
-
-  };
-
-
-
-
 
   return (
-
-    <main
-      className="
-        space-y-6
-      "
-    >
-
-
+    <div className="space-y-6">
 
       {/* Header */}
 
-
-      <div
-        className="
-          flex
-          items-center
-          justify-between
-        "
-      >
-
+      <div className="flex items-start justify-between">
 
         <div>
 
-          <h1
-            className="
-              text-2xl
-              font-bold
-              text-slate-800
-            "
-          >
-
+          <h1 className="text-3xl font-bold text-slate-900">
             Add Appointment
-
           </h1>
 
-
-          <p
-            className="
-              mt-1
-              text-slate-500
-            "
-          >
-
+          <p className="mt-2 text-slate-500">
             Create a new patient appointment.
-
           </p>
-
 
         </div>
 
-
-
-
-
-        <Link
-
-          href="/dashboard/appointments"
-
-          className="
-            inline-flex
-            items-center
-            gap-2
-            rounded-xl
-            border
-            px-4
-            py-2
-            text-slate-700
-            hover:bg-slate-50
-          "
-
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100"
         >
-
-          <ArrowLeft size={18}/>
-
+          <ArrowLeft size={18} />
           Back
-
-        </Link>
-
-
+        </button>
 
       </div>
 
-
-
-
-
-
-
       {/* Form */}
 
-
-
-      <form
-
-        onSubmit={handleSubmit}
-
-        className="
-          rounded-2xl
-          border
-          border-slate-200
-          bg-white
-          p-6
-          shadow-sm
-        "
-
-      >
-
-
-
-        <div
-          className="
-            grid
-            grid-cols-1
-            gap-6
-            md:grid-cols-2
-          "
-        >
-
-
-
-
-
-          {/* Patient Name */}
-
-
-          <InputField
-
-            label="Patient Name"
-
-            name="patientName"
-
-            value={
-              formData.patientName
-            }
-
-            onChange={
-              handleChange
-            }
-
-          />
-
-
-
-
-
-
-
-          {/* Phone */}
-
-
-          <InputField
-
-            label="Phone Number"
-
-            name="phone"
-
-            value={
-              formData.phone
-            }
-
-            onChange={
-              handleChange
-            }
-
-          />
-
-
-
-
-
-
-
-          {/* Email */}
-
-
-          <InputField
-
-            label="Email"
-
-            name="email"
-
-            value={
-              formData.email
-            }
-
-            onChange={
-              handleChange
-            }
-
-          />
-
-
-
-
-
-
-
-
-
-          {/* Treatment */}
-
-
-          <SelectField
-
-            label="Treatment"
-
-            name="treatment"
-
-            value={
-              formData.treatment
-            }
-
-            onChange={
-              handleChange
-            }
-
-            options={[
-              "Dental Cleaning",
-              "Root Canal",
-              "Dental Implant",
-              "Teeth Whitening",
-            ]}
-
-          />
-
-
-
-
-
-
-
-
-
-          {/* Doctor */}
-
-
-          <SelectField
-
-            label="Doctor"
-
-            name="doctor"
-
-            value={
-              formData.doctor
-            }
-
-            onChange={
-              handleChange
-            }
-
-            options={[
-              "Dr. Sultan",
-              "Dr. Ahmed",
-              "Dr. Rahman",
-            ]}
-
-          />
-
-
-
-
-
-
-
-
-
-          {/* Date */}
-
-
-          <InputField
-
-            label="Appointment Date"
-
-            type="date"
-
-            name="date"
-
-            value={
-              formData.date
-            }
-
-            onChange={
-              handleChange
-            }
-
-          />
-
-
-
-
-
-
-
-
-          {/* Time */}
-
-
-          <InputField
-
-            label="Appointment Time"
-
-            type="time"
-
-            name="time"
-
-            value={
-              formData.time
-            }
-
-            onChange={
-              handleChange
-            }
-
-          />
-
-
-
-
-
-
-
-
-          {/* Status */}
-
-
-          <SelectField
-
-            label="Status"
-
-            name="status"
-
-            value={
-              formData.status
-            }
-
-            onChange={
-              handleChange
-            }
-
-            options={[
-              "Pending",
-              "Confirmed",
-              "Completed",
-              "Cancelled",
-            ]}
-
-          />
-
-
-
-
-
-
-
-
-          {/* Payment */}
-
-
-          <SelectField
-
-            label="Payment"
-
-            name="payment"
-
-            value={
-              formData.payment
-            }
-
-            onChange={
-              handleChange
-            }
-
-            options={[
-              "Paid",
-              "Unpaid",
-              "Partial",
-            ]}
-
-          />
-
-
-
-
-        </div>
-
-
-
-
-
-
-
-        {/* Submit */}
-
-
-        <div
-          className="
-            mt-8
-            flex
-            justify-end
-          "
-        >
-
-
-          <button
-
-            type="submit"
-
-            className="
-              inline-flex
-              items-center
-              gap-2
-              rounded-xl
-              bg-blue-600
-              px-6
-              py-3
-              font-medium
-              text-white
-              hover:bg-blue-700
-            "
-
-          >
-
-            <Save size={18}/>
-
-            Save Appointment
-
-          </button>
-
-
-
-        </div>
-
-
-
-      </form>
-
-
-
-
-    </main>
-
-  );
-
-}
-
-
-
-
-
-
-
-function InputField({
-
-  label,
-
-  name,
-
-  value,
-
-  onChange,
-
-  type="text"
-
-
-}:any){
-
-
-  return (
-
-    <div>
-
-      <label
-        className="
-          mb-2
-          block
-          text-sm
-          font-medium
-          text-slate-700
-        "
-      >
-
-        {label}
-
-      </label>
-
-
-      <input
-
-        type={type}
-
-        name={name}
-
-        value={value}
-
-        onChange={onChange}
-
-        className="
-          w-full
-          rounded-xl
-          border
-          border-slate-200
-          px-4
-          py-3
-          outline-none
-          focus:border-blue-500
-        "
-
-      />
-
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+        <AppointmentForm
+          submitLabel={
+            loading
+              ? "Creating..."
+              : "Create Appointment"
+          }
+          onSubmit={handleCreate}
+        />
+
+      </div>
 
     </div>
-
   );
-
-
-}
-
-
-
-
-
-
-
-
-function SelectField({
-
-  label,
-
-  name,
-
-  value,
-
-  onChange,
-
-  options
-
-
-}:any){
-
-
-  return (
-
-    <div>
-
-
-      <label
-        className="
-          mb-2
-          block
-          text-sm
-          font-medium
-          text-slate-700
-        "
-      >
-
-        {label}
-
-      </label>
-
-
-
-      <select
-
-        name={name}
-
-        value={value}
-
-        onChange={onChange}
-
-        className="
-          w-full
-          rounded-xl
-          border
-          border-slate-200
-          px-4
-          py-3
-          outline-none
-          focus:border-blue-500
-        "
-
-      >
-
-
-        <option value="">
-          Select {label}
-        </option>
-
-
-
-        {
-          options.map(
-            (item:string)=>(
-              
-              <option
-                key={item}
-                value={item}
-              >
-                {item}
-              </option>
-
-            )
-          )
-        }
-
-
-      </select>
-
-
-    </div>
-
-  );
-
-
 }

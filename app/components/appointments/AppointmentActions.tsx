@@ -45,15 +45,12 @@ const statusOptions: AppointmentStatus[] = [
   "Confirmed",
   "Completed",
   "Cancelled",
-  "Rejected",
-  "No Show",
+
 ];
 
 const paymentOptions: PaymentStatus[] = [
   "Pending",
   "Paid",
-  "Partially Paid",
-  "Refunded",
 ];
 
 export default function AppointmentActions({
@@ -117,27 +114,11 @@ export default function AppointmentActions({
             Edit Appointment
           </Link>
 
-          {/* Call */}
+         
 
-          <a
-            href={`tel:${phone}`}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50"
-          >
-            <Phone size={17} />
+         
 
-            Call Patient
-          </a>
-
-          {/* Email */}
-
-          <a
-            href={`mailto:${email}`}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50"
-          >
-            <Mail size={17} />
-
-            Email Patient
-          </a>
+        
 
           <div className="my-2 border-t" />
 

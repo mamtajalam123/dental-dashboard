@@ -1,53 +1,130 @@
-type AppointmentStatusProps = {
-  status:
-    | "Pending"
-    | "Confirmed"
-    | "Completed"
-    | "Cancelled"
-    | "Rejected"
-    | "No Show";
-};
+"use client";
 
-export default function AppointmentStatus({
-  status,
-}: AppointmentStatusProps) {
-  const styles = {
-    Pending:
-      "bg-yellow-100 text-yellow-700",
+import {
+  CalendarDays,
+  Clock3,
+  CheckCircle2,
+  IndianRupee,
+} from "lucide-react";
 
-    Confirmed:
-      "bg-blue-100 text-blue-700",
+import { Appointment } from "@/app/types/appointment";
 
-    Completed:
-      "bg-green-100 text-green-700",
+interface AppointmentStatsProps {
+  appointments?: Appointment[];
+}
 
-    Cancelled:
-      "bg-gray-100 text-gray-700",
+export default function AppointmentStats({
+  appointments = [],
+}: AppointmentStatsProps) {
 
-    Rejected:
-      "bg-red-100 text-red-700",
+  const total =
+    appointments.length;
 
-    "No Show":
-      "bg-orange-100 text-orange-700",
-  };
+  const pending =
+    appointments.filter(
+      (item) =>
+        item.status === "Pending"
+    ).length;
+
+  const completed =
+    appointments.filter(
+      (item) =>
+        item.status === "Completed"
+    ).length;
+
+  const paid =
+    appointments.filter(
+      (item) =>
+        item.payment === "Paid"
+    ).length;
+
+  const cards = [
+
+    {
+      title: "Total Appointments",
+      value: total,
+      icon: CalendarDays,
+      color:
+        "bg-blue-100 text-blue-700",
+    },
+
+    {
+      title: "Pending",
+      value: pending,
+      icon: Clock3,
+      color:
+        "bg-yellow-100 text-yellow-700",
+    },
+
+    {
+      title: "Completed",
+      value: completed,
+      icon: CheckCircle2,
+      color:
+        "bg-green-100 text-green-700",
+    },
+
+    {
+      title: "Paid",
+      value: paid,
+      icon: IndianRupee,
+      color:
+        "bg-purple-100 text-purple-700",
+    },
+
+  ];
 
   return (
-    <span
-      className={`
-        inline-flex
-        items-center
-        justify-center
-        rounded-full
-        px-3
-        py-1
-        text-xs
-        font-semibold
-        ${
-          styles[status]
-        }
-      `}
-    >
-      {status}
-    </span>
+
+    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+
+      {cards.map((card) => {
+
+        const Icon = card.icon;
+
+        return (
+
+          <div
+            key={card.title}
+            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          >
+
+            <div className="flex items-center justify-between">
+
+              <div>
+
+                <p className="text-sm text-slate-500">
+
+                  {card.title}
+
+                </p>
+
+                <h2 className="mt-2 text-3xl font-bold text-slate-900">
+
+                  {card.value}
+
+                </h2>
+
+              </div>
+
+              <div
+                className={`rounded-xl p-3 ${card.color}`}
+              >
+
+                <Icon size={24} />
+
+              </div>
+
+            </div>
+
+          </div>
+
+        );
+
+      })}
+
+    </div>
+
   );
+
 }

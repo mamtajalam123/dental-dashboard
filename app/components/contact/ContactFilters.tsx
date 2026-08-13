@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Search, RotateCcw } from "lucide-react";
@@ -16,6 +17,8 @@ type ContactFiltersProps = {
   setSort: (value: string) => void;
 
   onClear: () => void;
+
+  subjects?: string[];
 };
 
 export default function ContactFilters({
@@ -28,147 +31,163 @@ export default function ContactFilters({
   sort,
   setSort,
   onClear,
+  subjects = [],
 }: ContactFiltersProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
 
-        {/* Search */}
+        {/* ==========================================
+            SEARCH
+        ========================================== */}
 
-        <div className="relative">
+        <div className="lg:col-span-2">
 
-          <Search
-            size={18}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-          />
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Search
+          </label>
 
-          <input
-            type="text"
-            placeholder="Search patient..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="
-              h-11
-              w-full
-              rounded-xl
-              border
-              border-slate-300
-              pl-11
-              pr-4
-              text-sm
-              outline-none
-              transition
-              focus:border-blue-500
-            "
-          />
+          <div className="relative">
+
+            <Search
+              size={18}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+
+            <input
+              type="text"
+              value={search}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
+              placeholder="Search name, email or message..."
+              className="h-11 w-full rounded-xl border border-slate-300 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+
+          </div>
 
         </div>
 
-        {/* Subject */}
+        {/* ==========================================
+            SUBJECT
+        ========================================== */}
 
-        <select
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          className="
-            h-11
-            rounded-xl
-            border
-            border-slate-300
-            px-4
-            text-sm
-            outline-none
-            transition
-            focus:border-blue-500
-          "
-        >
-          <option value="">All Subjects</option>
-          <option value="Dental Implant">Dental Implant</option>
-          <option value="Root Canal">Root Canal</option>
-          <option value="Teeth Whitening">Teeth Whitening</option>
-          <option value="Smile Makeover">Smile Makeover</option>
-          <option value="Dental Cleaning">Dental Cleaning</option>
-          <option value="Braces">Braces</option>
-          <option value="Tooth Extraction">Tooth Extraction</option>
-          <option value="Consultation">Consultation</option>
-          <option value="Dental Crown">Dental Crown</option>
-          <option value="Kids Dentistry">Kids Dentistry</option>
-          <option value="Scaling">Scaling</option>
-        </select>
+        <div>
 
-        {/* Status */}
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Subject
+          </label>
 
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="
-            h-11
-            rounded-xl
-            border
-            border-slate-300
-            px-4
-            text-sm
-            outline-none
-            transition
-            focus:border-blue-500
-          "
-        >
-          <option value="">All Status</option>
-          <option value="New">New</option>
-          <option value="Read">Read</option>
-          <option value="Replied">Replied</option>
-          <option value="Archived">Archived</option>
-        </select>
+          <select
+            value={subject}
+            onChange={(event) =>
+              setSubject(event.target.value)
+            }
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          >
 
-        {/* Sort */}
+            <option value="">
+              All Subjects
+            </option>
 
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="
-            h-11
-            rounded-xl
-            border
-            border-slate-300
-            px-4
-            text-sm
-            outline-none
-            transition
-            focus:border-blue-500
-          "
-        >
-          <option value="newest">
-            Newest First
-          </option>
+            {subjects.map((item) => (
+              <option
+                key={item}
+                value={item}
+              >
+                {item}
+              </option>
+            ))}
 
-          <option value="oldest">
-            Oldest First
-          </option>
-        </select>
+          </select>
 
-        {/* Clear */}
+        </div>
+
+        {/* ==========================================
+            STATUS
+        ========================================== */}
+
+        <div>
+
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Status
+          </label>
+
+          <select
+            value={status}
+            onChange={(event) =>
+              setStatus(event.target.value)
+            }
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          >
+
+            <option value="">
+              All Status
+            </option>
+
+            <option value="New">
+              New
+            </option>
+
+            <option value="Read">
+              Read
+            </option>
+
+            <option value="Replied">
+              Replied
+            </option>
+
+          </select>
+
+        </div>
+
+        {/* ==========================================
+            SORT
+        ========================================== */}
+
+        <div>
+
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Sort
+          </label>
+
+          <select
+            value={sort}
+            onChange={(event) =>
+              setSort(event.target.value)
+            }
+            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          >
+
+            <option value="newest">
+              Newest First
+            </option>
+
+            <option value="oldest">
+              Oldest First
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      {/* ==========================================
+          CLEAR FILTERS
+      ========================================== */}
+
+      <div className="mt-4 flex justify-end">
 
         <button
           type="button"
           onClick={onClear}
-          className="
-            inline-flex
-            h-11
-            items-center
-            justify-center
-            gap-2
-            rounded-xl
-            bg-red-50
-            px-5
-            font-medium
-            text-red-600
-            transition
-            hover:bg-red-100
-          "
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
         >
-          <RotateCcw size={18} />
+          <RotateCcw size={16} />
 
-          Clear
+          Clear Filters
         </button>
 
       </div>

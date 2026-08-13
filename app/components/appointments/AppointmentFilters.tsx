@@ -1,17 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Search, RotateCcw } from "lucide-react";
 
-import {
-  serviceCategories
-} from "@/data/serviceCategories";
+import { categoryAPI } from "@/app/services/category.api";
+import { teamAPI } from "@/app/services/team.api";
 
-import {
-  teamDesignations
-} from "@/app/data/teamDesignations";
+import { Category } from "@/app/types/category";
+import { Team } from "@/app/types/team";
 
-
-type Props = {
+interface AppointmentFiltersProps {
   search: string;
   setSearch: (value: string) => void;
 
@@ -34,676 +32,274 @@ type Props = {
   setSort: (value: string) => void;
 
   onClear: () => void;
-};
-
-
+}
 
 export default function AppointmentFilters({
-
   search,
-
   setSearch,
 
   treatment,
-
   setTreatment,
 
   doctor,
-
   setDoctor,
 
   status,
-
   setStatus,
 
   payment,
-
   setPayment,
 
   date,
-
   setDate,
 
   sort,
-
   setSort,
 
   onClear,
-
-}: Props) {
-
-
-return (
-
-<div className="
-rounded-2xl
-border
-border-slate-200
-bg-white
-p-6
-shadow-sm
-">
-
-
-<div className="
-grid
-gap-5
-md:grid-cols-2
-xl:grid-cols-4
-">
-
-
-
-{/* Search */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-text-sm
-font-semibold
-text-slate-700
-">
-
-Search Patient
-
-</label>
-
-
-
-<div className="relative">
-
-
-<Search
-
-size={18}
-
-className="
-absolute
-left-3
-top-1/2
--translate-y-1/2
-text-slate-400
-"
-
-/>
-
-
-
-<input
-
-type="text"
-
-placeholder="Patient name..."
-
-value={search}
-
-onChange={(e)=>
-setSearch(e.target.value)
-}
-
-className="
-h-11
-w-full
-rounded-xl
-border
-border-slate-300
-pl-10
-pr-4
-outline-none
-focus:border-blue-500
-"
-
-/>
-
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Treatment */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-text-sm
-font-semibold
-text-slate-700
-">
-
-Treatment
-
-</label>
-
-
-
-<select
-
-value={treatment}
-
-onChange={(e)=>
-setTreatment(e.target.value)
-}
-
-className="
-h-11
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-outline-none
-focus:border-blue-500
-"
-
->
-
-
-<option value="">
-
-All Treatments
-
-</option>
-
-
-
-{
-
-serviceCategories
-
-.filter(
-(item)=>item.status==="Active"
-)
-
-.map((item)=>(
-
-
-<option
-
-key={item.id}
-
-value={item.name}
-
->
-
-{item.name}
-
-</option>
-
-
-
-))
-
-}
-
-
-
-</select>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Doctor */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-text-sm
-font-semibold
-text-slate-700
-">
-
-Doctor
-
-</label>
-
-
-
-<select
-
-value={doctor}
-
-onChange={(e)=>
-setDoctor(e.target.value)
-}
-
-className="
-h-11
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-outline-none
-focus:border-blue-500
-"
-
->
-
-
-<option value="">
-
-All Doctors
-
-</option>
-
-
-
-{
-
-teamDesignations
-
-.filter(
-(item)=>item.status==="Active"
-)
-
-.map((item)=>(
-
-
-<option
-
-key={item.id}
-
-value={item.name}
-
->
-
-{item.name}
-
-</option>
-
-
-
-))
-
-}
-
-
-
-</select>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Date */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-text-sm
-font-semibold
-text-slate-700
-">
-
-Appointment Date
-
-</label>
-
-
-
-<input
-
-type="date"
-
-value={date}
-
-onChange={(e)=>
-setDate(e.target.value)
-}
-
-className="
-h-11
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-outline-none
-focus:border-blue-500
-"
-
-/>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Status */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-text-sm
-font-semibold
-text-slate-700
-">
-
-Status
-
-</label>
-
-
-
-<select
-
-value={status}
-
-onChange={(e)=>
-setStatus(e.target.value)
-}
-
-className="
-h-11
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-outline-none
-focus:border-blue-500
-"
-
->
-
-
-<option value="">
-
-All Status
-
-</option>
-
-
-<option>
-Pending
-</option>
-
-<option>
-Confirmed
-</option>
-
-<option>
-Completed
-</option>
-
-<option>
-Cancelled
-</option>
-
-<option>
-Rejected
-</option>
-
-<option>
-No Show
-</option>
-
-
-</select>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Payment */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-text-sm
-font-semibold
-text-slate-700
-">
-
-Payment
-
-</label>
-
-
-
-<select
-
-value={payment}
-
-onChange={(e)=>
-setPayment(e.target.value)
-}
-
-className="
-h-11
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-outline-none
-focus:border-blue-500
-"
-
->
-
-
-<option value="">
-
-All Payments
-
-</option>
-
-
-<option>
-Pending
-</option>
-
-<option>
-Paid
-</option>
-
-<option>
-Partially Paid
-</option>
-
-<option>
-Refunded
-</option>
-
-
-</select>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Sort */}
-
-
-<div>
-
-
-<label className="
-mb-2
-block
-text-sm
-font-semibold
-text-slate-700
-">
-
-Sort
-
-</label>
-
-
-
-<select
-
-value={sort}
-
-onChange={(e)=>
-setSort(e.target.value)
-}
-
-className="
-h-11
-w-full
-rounded-xl
-border
-border-slate-300
-px-4
-outline-none
-focus:border-blue-500
-"
-
->
-
-
-<option value="newest">
-
-Newest First
-
-</option>
-
-
-<option value="oldest">
-
-Oldest First
-
-</option>
-
-
-</select>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Clear */}
-
-
-<div className="
-flex
-items-end
-">
-
-
-<button
-
-type="button"
-
-onClick={onClear}
-
-className="
-flex
-h-11
-w-full
-items-center
-justify-center
-gap-2
-rounded-xl
-border
-border-slate-300
-font-medium
-hover:bg-slate-100
-"
-
->
-
-
-<RotateCcw size={18}/>
-
-Clear Filters
-
-
-</button>
-
-
-</div>
-
-
-
-
-
-</div>
-
-
-</div>
-
-
-);
-
-
+}: AppointmentFiltersProps) {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [doctors, setDoctors] = useState<Team[]>([]);
+
+  const [loadingCategories, setLoadingCategories] =
+    useState(false);
+
+  const [loadingDoctors, setLoadingDoctors] =
+    useState(false);
+
+  useEffect(() => {
+    loadCategories();
+    loadDoctors();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      setLoadingCategories(true);
+
+      const response =
+        await categoryAPI.getAll();
+
+      const data =
+        response?.data || response || [];
+
+      setCategories(
+        Array.isArray(data) ? data : []
+      );
+    } catch (error) {
+      console.error(
+        "Failed to load categories",
+        error
+      );
+      setCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  const loadDoctors = async () => {
+    try {
+      setLoadingDoctors(true);
+
+      const response =
+        await teamAPI.getAll();
+
+      const data =
+        response?.data || response || [];
+
+      setDoctors(
+        Array.isArray(data) ? data : []
+      );
+    } catch (error) {
+      console.error(
+        "Failed to load doctors",
+        error
+      );
+      setDoctors([]);
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
+
+        {/* Search */}
+
+        <div className="relative">
+
+          <Search
+            size={18}
+            className="absolute left-3 top-3 text-slate-400"
+          />
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+            placeholder="Search patient..."
+            className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-3 text-sm"
+          />
+
+        </div>
+
+        {/* Treatment */}
+
+        <select
+          value={treatment}
+          onChange={(e) =>
+            setTreatment(e.target.value)
+          }
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="All">
+            All Treatments
+          </option>
+
+          {loadingCategories && (
+            <option disabled>
+              Loading...
+            </option>
+          )}
+
+          {!loadingCategories &&
+            categories.map((category) => (
+              <option
+                key={category.id}
+                value={category.name}
+              >
+                {category.name}
+              </option>
+            ))}
+        </select>
+
+        {/* Doctor */}
+
+        <select
+          value={doctor}
+          onChange={(e) =>
+            setDoctor(e.target.value)
+          }
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="All">
+            All Doctors
+          </option>
+
+          {loadingDoctors && (
+            <option disabled>
+              Loading...
+            </option>
+          )}
+
+          {!loadingDoctors &&
+            doctors.map((item) => (
+              <option
+                key={item.id}
+                value={item.name}
+              >
+                {item.name}
+              </option>
+            ))}
+        </select>
+
+        {/* Status */}
+
+        <select
+          value={status}
+          onChange={(e) =>
+            setStatus(e.target.value)
+          }
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="All">
+            All Status
+          </option>
+
+          <option value="Pending">
+            Pending
+          </option>
+
+          <option value="Confirmed">
+            Confirmed
+          </option>
+
+          <option value="Completed">
+            Completed
+          </option>
+
+          <option value="Cancelled">
+            Cancelled
+          </option>
+        </select>
+
+        {/* Payment */}
+
+        <select
+          value={payment}
+          onChange={(e) =>
+            setPayment(e.target.value)
+          }
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="All">
+            All Payments
+          </option>
+
+          <option value="Pending">
+            Pending
+          </option>
+
+          <option value="Paid">
+            Paid
+          </option>
+        </select>
+
+        {/* Date */}
+
+        <input
+          type="date"
+          value={date}
+          onChange={(e) =>
+            setDate(e.target.value)
+          }
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        />
+
+      </div>
+
+      <div className="mt-5 flex items-center justify-between">
+
+        <select
+          value={sort}
+          onChange={(e) =>
+            setSort(e.target.value)
+          }
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="newest">
+            Newest First
+          </option>
+
+          <option value="oldest">
+            Oldest First
+          </option>
+        </select>
+
+        <button
+          type="button"
+          onClick={onClear}
+          className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100"
+        >
+          <RotateCcw size={16} />
+          Reset Filters
+        </button>
+
+      </div>
+
+    </div>
+  );
 }

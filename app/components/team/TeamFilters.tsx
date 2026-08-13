@@ -1,50 +1,46 @@
 "use client";
 
-
 import Link from "next/link";
-
 import {
   Search,
   Plus,
+  RotateCcw,
 } from "lucide-react";
 
-
-import {
-  teamDesignations
-} from "@/app/data/teamDesignations";
-
-
-
+import { Designation } from "@/app/types/designation";
 
 
 type TeamFiltersProps = {
 
-  search:string;
+  search: string;
 
-  designation:string;
+  designationId: number;
 
-  status:string;
+  status: "All" | "Active" | "Inactive";
 
+  designations: Designation[];
 
-  onSearchChange:(
+  onSearchChange: (
     value:string
-  )=>void;
+  ) => void;
 
 
-  onDesignationChange:(
-    value:string
-  )=>void;
+  onDesignationChange: (
+    value:number
+  ) => void;
 
 
-  onStatusChange:(
-    value:string
-  )=>void;
+  onStatusChange: (
+    value:"All" | "Active" | "Inactive"
+  ) => void;
+
+
+  onReset:()=>void;
+
+
+  loading?:boolean;
 
 };
-
-
-
-
 
 
 
@@ -52,9 +48,11 @@ export default function TeamFilters({
 
   search,
 
-  designation,
+  designationId,
 
   status,
+
+  designations,
 
   onSearchChange,
 
@@ -62,58 +60,59 @@ export default function TeamFilters({
 
   onStatusChange,
 
-}:TeamFiltersProps){
+  onReset,
 
+  loading=false,
+
+}:TeamFiltersProps){
 
 
 return (
 
-<div className="
+<div
+className="
 rounded-2xl
 border
 border-slate-200
 bg-white
 p-5
 shadow-sm
-">
+"
+>
 
 
-<div className="
+<div
+className="
 flex
 flex-col
 gap-4
 lg:flex-row
 lg:items-center
 lg:justify-between
-">
+"
+>
 
 
 
+{/* FILTER AREA */}
 
-
-{/* Filters */}
-
-
-<div className="
+<div
+className="
 grid
 flex-1
 gap-4
-md:grid-cols-3
-">
+md:grid-cols-4
+"
+>
 
 
 
 
+{/* SEARCH */}
 
-
-
-{/* Search */}
-
-
-
-<div className="
-relative
-">
+<div
+className="relative"
+>
 
 
 <Search
@@ -134,26 +133,19 @@ text-slate-400
 
 <input
 
-
 type="text"
-
 
 value={search}
 
+disabled={loading}
 
 onChange={(e)=>
-
 onSearchChange(
 e.target.value
 )
-
 }
 
-
-placeholder="
-Search team member...
-"
-
+placeholder="Search team member..."
 
 className="
 w-full
@@ -165,8 +157,8 @@ pl-11
 pr-4
 outline-none
 focus:border-blue-600
+disabled:bg-slate-100
 "
-
 
 />
 
@@ -177,27 +169,22 @@ focus:border-blue-600
 
 
 
-
-
-
-
-{/* Designation */}
-
-
+{/* DESIGNATION FILTER */}
 
 
 <select
 
 
-value={designation}
+value={designationId}
+
+
+disabled={loading}
 
 
 onChange={(e)=>
-
 onDesignationChange(
-e.target.value
+Number(e.target.value)
 )
-
 }
 
 
@@ -210,13 +197,13 @@ px-4
 py-3
 outline-none
 focus:border-blue-600
+disabled:bg-slate-100
 "
-
 
 >
 
 
-<option value="">
+<option value={0}>
 
 All Designations
 
@@ -224,24 +211,24 @@ All Designations
 
 
 
-
 {
 
-teamDesignations
+(designations ?? [])
 
 .filter(
 (item)=>
 item.status==="Active"
 )
 
-.map((item)=>(
+.map(
+(item)=>(
 
 
 <option
 
 key={item.id}
 
-value={item.name}
+value={item.id}
 
 >
 
@@ -250,11 +237,11 @@ value={item.name}
 </option>
 
 
-))
+)
 
+)
 
 }
-
 
 
 
@@ -267,9 +254,7 @@ value={item.name}
 
 
 
-
-{/* Status */}
-
+{/* STATUS FILTER */}
 
 
 <select
@@ -278,12 +263,16 @@ value={item.name}
 value={status}
 
 
+disabled={loading}
+
+
 onChange={(e)=>
-
 onStatusChange(
-e.target.value
+e.target.value as
+"All" |
+"Active" |
+"Inactive"
 )
-
 }
 
 
@@ -296,13 +285,13 @@ px-4
 py-3
 outline-none
 focus:border-blue-600
+disabled:bg-slate-100
 "
-
 
 >
 
 
-<option value="">
+<option value="All">
 
 All Status
 
@@ -325,10 +314,56 @@ Inactive
 </option>
 
 
-
 </select>
 
 
+
+
+
+
+
+{/* RESET */}
+
+
+<button
+
+
+type="button"
+
+
+disabled={loading}
+
+
+onClick={onReset}
+
+
+className="
+flex
+items-center
+justify-center
+gap-2
+rounded-xl
+bg-slate-100
+px-4
+py-3
+font-medium
+text-slate-700
+transition
+hover:bg-slate-200
+disabled:opacity-50
+"
+
+
+>
+
+
+<RotateCcw size={18}/>
+
+
+Reset
+
+
+</button>
 
 
 
@@ -342,8 +377,7 @@ Inactive
 
 
 
-{/* Add Button */}
-
+{/* ADD BUTTON */}
 
 
 <Link
@@ -375,9 +409,6 @@ Add Team Member
 
 
 </Link>
-
-
-
 
 
 

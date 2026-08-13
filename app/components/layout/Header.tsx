@@ -7,6 +7,7 @@ import {
   Power,
   X,
 } from "lucide-react";
+import { logout } from "@/app/store/slices/authSlice";
 
 type HeaderProps = {
   onMenuClick?: () => void;
@@ -19,13 +20,14 @@ export default function Header({
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = () => {
-    // Clear your auth data here if needed
-    // localStorage.removeItem("token");
-    // sessionStorage.clear();
+ const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
 
-    router.push("/login");
-  };
+  dispatch(logout());
+
+  router.replace("/login");
+};
 
   return (
     <>

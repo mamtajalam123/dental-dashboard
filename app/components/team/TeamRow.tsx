@@ -1,91 +1,410 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import {
+  Edit,
+  Trash2,
+} from "lucide-react";
 
-import { TeamMember } from "@/data/team";
+import { Team } from "@/app/types/team";
 
-import TeamStatus from "./TeamStatus";
-import TeamActions from "./TeamActions";
 
 type TeamRowProps = {
-  member: TeamMember;
-  onDelete: (id: number) => void;
+
+  member: Team;
+
+  onDelete: (
+    member: Team
+  ) => void;
+
 };
 
+
+
 export default function TeamRow({
+
   member,
+
   onDelete,
+
 }: TeamRowProps) {
-  return (
-    <tr className="border-b border-slate-200 transition hover:bg-slate-50">
 
-      {/* Doctor */}
 
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-4">
 
-          <Image
-            src={member.image}
-            alt={member.name}
-            width={50}
-            height={50}
-            className="rounded-full border object-cover"
-          />
+return (
 
-          <div>
-            <h3 className="font-semibold text-slate-800">
-              {member.name}
-            </h3>
+<tr className="
+border-t
+border-slate-200
+hover:bg-slate-50
+">
 
-            <p className="text-sm text-slate-500">
-              {member.email}
-            </p>
-          </div>
 
-        </div>
-      </td>
 
-      {/* Designation */}
 
-      <td className="px-6 py-4">
-        <span className="font-medium text-slate-700">
-          {member.designation}
-        </span>
-      </td>
 
-      {/* Specialization */}
+{/* TEAM MEMBER */}
 
-      <td className="px-6 py-4">
-        <span className="text-slate-600">
-          {member.specialization}
-        </span>
-      </td>
+<td className="
+px-5
+py-4
+">
 
-      {/* Experience */}
 
-      <td className="px-6 py-4">
-        <span className="text-slate-600">
-          {member.experience}
-        </span>
-      </td>
+<div className="
+flex
+items-center
+gap-4
+">
 
-      {/* Status */}
 
-      <td className="px-6 py-4">
-        <TeamStatus
-          status={member.status}
-        />
-      </td>
+<div className="
+relative
+h-14
+w-14
+overflow-hidden
+rounded-xl
+border
+bg-slate-100
+">
 
-      {/* Actions */}
 
-      <td className="px-6 py-4">
-        <TeamActions
-          id={member.id}
-          onDelete={onDelete}
-        />
-      </td>
+{
+member.image ? (
 
-    </tr>
-  );
+<Image
+  src={member.image}
+  alt={member.name}
+  fill
+  sizes="56px"
+  className="object-cover"
+/>
+
+)
+
+:
+
+(
+<div
+className="
+flex
+h-full
+w-full
+items-center
+justify-center
+text-xs
+text-slate-500
+"
+>
+N/A
+</div>
+)
+
+}
+
+
+
+</div>
+
+
+
+
+
+<div>
+
+
+<h3 className="
+font-semibold
+text-slate-900
+">
+
+{member.name}
+
+</h3>
+
+
+
+
+
+{
+member.email && (
+
+<p className="
+text-sm
+text-slate-500
+">
+
+{member.email}
+
+</p>
+
+)
+}
+
+
+
+
+
+{
+member.phone && (
+
+<p className="
+text-sm
+text-slate-500
+">
+
+{member.phone}
+
+</p>
+
+)
+}
+
+
+
+
+</div>
+
+
+</div>
+
+
+</td>
+
+
+
+
+
+
+
+
+{/* DESIGNATION */}
+
+<td className="
+px-5
+py-4
+">
+
+
+<span>
+
+{
+
+member.designation ??
+
+"Not Assigned"
+
+}
+
+</span>
+
+
+</td>
+
+
+
+
+
+
+
+
+
+{/* SPECIALIZATION */}
+
+<td className="
+px-5
+py-4
+">
+
+
+{
+
+member.specialization ||
+
+"-"
+
+}
+
+
+</td>
+
+
+
+
+
+
+
+
+{/* EXPERIENCE */}
+
+<td className="
+px-5
+py-4
+">
+
+
+{
+
+member.experience ||
+
+"-"
+
+}
+
+
+</td>
+
+
+
+
+
+
+
+
+
+{/* STATUS */}
+
+<td className="
+px-5
+py-4
+">
+
+
+<span
+
+className={`
+
+rounded-full
+
+px-3
+
+py-1
+
+text-xs
+
+font-medium
+
+
+${
+
+member.status === "Active"
+
+?
+
+"bg-green-100 text-green-700"
+
+:
+
+"bg-red-100 text-red-700"
+
+}
+
+`}
+
+>
+
+{member.status}
+
+
+</span>
+
+
+</td>
+
+
+
+
+
+
+
+
+
+{/* ACTION */}
+
+<td className="
+px-5
+py-4
+">
+
+
+<div className="
+flex
+items-center
+gap-2
+">
+
+
+<Link
+
+href={`/dashboard/team/edit/${member.id}`}
+
+className="
+rounded-lg
+border
+p-2
+text-blue-600
+transition
+hover:bg-blue-50
+"
+
+title="Edit"
+
+>
+
+<Edit size={18}/>
+
+
+</Link>
+
+
+
+
+
+
+
+<button
+
+type="button"
+
+onClick={() =>
+onDelete(member)
+}
+
+className="
+rounded-lg
+border
+p-2
+text-red-600
+transition
+hover:bg-red-50
+"
+
+title="Delete"
+
+>
+
+
+<Trash2 size={18}/>
+
+
+</button>
+
+
+
+
+</div>
+
+
+</td>
+
+
+
+
+
+</tr>
+
+
+);
+
 }

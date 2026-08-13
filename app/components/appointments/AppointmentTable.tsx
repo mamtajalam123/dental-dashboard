@@ -1,42 +1,56 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { Plus } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-import { appointmentAPI } from "@/app/lib/api";
-import { Appointment } from "@/types/appointment";
+import Link from "next/link";
+
+import { Plus, SearchX } from "lucide-react";
 
 import AppointmentFilters from "./AppointmentFilters";
-import AppointmentStatus from "./AppointmentStatus";
-import PaymentStatus from "./PaymentStatus";
-import AppointmentActions from "./AppointmentActions";
+import AppointmentStats from "./AppointmentStatus";
+import AppointmentRow from "./AppointmentRow";
+import AppointmentPagination from "./AppointmentPagination";
 import DeleteAppointmentModal from "./DeleteAppointmentModal";
-import AppointmentTableLoading from "./AppointmentTableLoading";
+
+import { appointmentAPI } from "@/app/services/appointment.api";
+import { Appointment } from "@/app/types/appointment";
 
 const ITEMS_PER_PAGE = 10;
 
 export default function AppointmentTable() {
+
+  // ===========================
+  // DATA
+  // ===========================
+
   const [appointments, setAppointments] =
     useState<Appointment[]>([]);
 
   const [loading, setLoading] =
     useState(true);
 
+  // ===========================
+  // FILTERS
+  // ===========================
+
   const [search, setSearch] =
     useState("");
 
   const [treatment, setTreatment] =
-    useState("");
+    useState("All");
 
   const [doctor, setDoctor] =
-    useState("");
+    useState("All");
 
   const [status, setStatus] =
-    useState("");
+    useState("All");
 
   const [payment, setPayment] =
-    useState("");
+    useState("All");
 
   const [date, setDate] =
     useState("");
@@ -44,108 +58,181 @@ export default function AppointmentTable() {
   const [sort, setSort] =
     useState("newest");
 
-  const [page, setPage] =
+  // ===========================
+  // PAGINATION
+  // ===========================
+
+  const [currentPage, setCurrentPage] =
     useState(1);
 
-  const [deleteOpen, setDeleteOpen] =
-    useState(false);
+  // ===========================
+  // DELETE
+  // ===========================
 
   const [
     selectedAppointment,
     setSelectedAppointment,
   ] = useState<Appointment | null>(null);
 
-  // Load appointments from API
-  const loadAppointments = async () => {
-    try {
-      setLoading(true);
+  const [showDelete, setShowDelete] =
+    useState(false);
 
-      const response =
-        await appointmentAPI.getAll();
+  // ===========================
+  // LOAD DATA
+  // ===========================
 
-      setAppointments(response.data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // First Load
   useEffect(() => {
+
     loadAppointments();
+
   }, []);
 
-  // Reset pagination on filter change
-  useEffect(() => {
-    setPage(1);
-  }, [
-    search,
-    treatment,
-    doctor,
-    status,
-    payment,
-    date,
-    sort,
-  ]);
+  const loadAppointments = async () => {
 
-  // Filter appointments
+    try {
+
+      setLoading(true);
+
+      const data =
+        await appointmentAPI.getAll();
+
+      setAppointments(
+        Array.isArray(data)
+          ? data
+          : []
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Appointment Load Error:",
+        error
+      );
+
+      setAppointments([]);
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  };
+    // ===========================
+  // FILTER APPOINTMENTS
+  // ===========================
+
   const filteredAppointments =
     useMemo(() => {
+
       let data = [...appointments];
 
-      if (search) {
+      // Search
+
+      if (search.trim()) {
+
+        const keyword =
+          search.toLowerCase();
+
         data = data.filter((item) =>
+
           item.patientName
-            .toLowerCase()
-            .includes(search.toLowerCase())
+            ?.toLowerCase()
+            .includes(keyword)
+
+          ||
+
+          item.phone
+            ?.toLowerCase()
+            .includes(keyword)
+
+          ||
+
+          item.email
+            ?.toLowerCase()
+            .includes(keyword)
+
         );
+
       }
 
-      if (treatment) {
+      // Treatment
+
+      if (treatment !== "All") {
+
         data = data.filter(
           (item) =>
             item.treatment === treatment
         );
+
       }
 
-      if (doctor) {
+      // Doctor
+
+      if (doctor !== "All") {
+
         data = data.filter(
           (item) =>
             item.doctor === doctor
         );
+
       }
 
-      if (status) {
+      // Status
+
+      if (status !== "All") {
+
         data = data.filter(
           (item) =>
             item.status === status
         );
+
       }
 
-      if (payment) {
+      // Payment
+
+      if (payment !== "All") {
+
         data = data.filter(
           (item) =>
             item.payment === payment
         );
+
       }
 
+      // Date
+
       if (date) {
+
         data = data.filter(
           (item) =>
             item.appointmentDate === date
         );
+
       }
 
-      data.sort((a, b) => {
-        if (sort === "newest") {
-          return (b.id ?? 0) - (a.id ?? 0);
-        }
+      // Sort
 
-        return (a.id ?? 0) - (b.id ?? 0);
+      data.sort((a, b) => {
+
+        const first =
+          new Date(
+            a.appointmentDate
+          ).getTime();
+
+        const second =
+          new Date(
+            b.appointmentDate
+          ).getTime();
+
+        return sort === "newest"
+          ? second - first
+          : first - second;
+
       });
 
       return data;
+
     }, [
       appointments,
       search,
@@ -157,508 +244,420 @@ export default function AppointmentTable() {
       sort,
     ]);
 
-  const totalPages = Math.ceil(
-    filteredAppointments.length /
+  // ===========================
+  // PAGINATION
+  // ===========================
+
+  const totalPages =
+    Math.ceil(
+      filteredAppointments.length /
       ITEMS_PER_PAGE
-  );
+    );
 
   const paginatedAppointments =
     filteredAppointments.slice(
-      (page - 1) * ITEMS_PER_PAGE,
-      page * ITEMS_PER_PAGE
+
+      (currentPage - 1) *
+        ITEMS_PER_PAGE,
+
+      currentPage *
+        ITEMS_PER_PAGE
+
     );
 
-  const clearFilters = () => {
+  // ===========================
+  // RESET FILTERS
+  // ===========================
+
+  const handleReset = () => {
+
     setSearch("");
-    setTreatment("");
-    setDoctor("");
-    setStatus("");
-    setPayment("");
+
+    setTreatment("All");
+
+    setDoctor("All");
+
+    setStatus("All");
+
+    setPayment("All");
+
     setDate("");
+
     setSort("newest");
-    setPage(1);
+
+    setCurrentPage(1);
+
   };
-    // Update Appointment Status
-  const handleStatusChange = async (
-    id: number,
-    value: Appointment["status"]
+
+  // ===========================
+  // DELETE
+  // ===========================
+
+  const handleDeleteClick = (
+    appointment: Appointment
   ) => {
-    try {
-      await appointmentAPI.updateStatus(
-        id,
-        value!
-      );
 
-      await loadAppointments();
-    } catch (error) {
-      console.error(error);
-    }
+    setSelectedAppointment(
+      appointment
+    );
+
+    setShowDelete(true);
+
   };
 
-  // Update Payment Status
-  const handlePaymentChange = async (
-    id: number,
-    value: Appointment["payment"]
-  ) => {
-    try {
-      await appointmentAPI.updatePayment(
-        id,
-        value!
-      );
+  const handleDelete =
+    async () => {
 
-      await loadAppointments();
-    } catch (error) {
-      console.error(error);
-    }
-  };
+      if (!selectedAppointment)
+        return;
 
-  // Open Delete Modal
-  const handleDelete = (id: number) => {
-    const appointment =
-      appointments.find(
-        (item) => item.id === id
-      );
+      try {
 
-    if (!appointment) return;
+        await appointmentAPI.delete(
+          selectedAppointment.id!
+        );
 
-    setSelectedAppointment(appointment);
+        await loadAppointments();
 
-    setDeleteOpen(true);
-  };
+        setShowDelete(false);
 
-  // Delete Appointment
-  const confirmDelete = async () => {
-    if (!selectedAppointment) return;
+        setSelectedAppointment(
+          null
+        );
 
-    try {
-      await appointmentAPI.delete(
-        selectedAppointment.id!
-      );
+      } catch (error) {
 
-      await loadAppointments();
+        console.error(error);
 
-      setDeleteOpen(false);
+      }
 
-      setSelectedAppointment(null);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+    };
 
-  // Statistics
-  const totalAppointments =
-    appointments.length;
+  // ===========================
+  // STATUS UPDATE
+  // ===========================
 
-  const pendingAppointments =
-    appointments.filter(
-      (item) =>
-        item.status === "Pending"
-    ).length;
+const handleStatusChange = async (
+  id:number,
+  status:string
+) => {
 
-  const confirmedAppointments =
-    appointments.filter(
-      (item) =>
-        item.status === "Confirmed"
-    ).length;
+  try {
 
-  const completedAppointments =
-    appointments.filter(
-      (item) =>
-        item.status === "Completed"
-    ).length;
+    await appointmentAPI.updateStatus(
+      id,
+      status
+    );
 
-  // Loading Skeleton
-  if (loading) {
-    return <AppointmentTableLoading />;
+
+    // Update UI immediately
+    setAppointments((prev)=> 
+      prev.map((appointment)=>
+
+        appointment.id === id
+
+          ? {
+              ...appointment,
+              status: status
+            }
+
+          : appointment
+
+      )
+    );
+
+
+  } catch(error){
+
+    console.error(
+      "Status update failed:",
+      error
+    );
+
   }
 
+};
+
+  // ===========================
+  // PAYMENT UPDATE
+  // ===========================
+
+  const handlePaymentChange =
+    async (
+      id: number,
+      payment:
+        | "Pending"
+        | "Paid"
+        | "Partially Paid"
+        | "Refunded"
+    ) => {
+
+      try {
+
+        await appointmentAPI.updatePayment(
+          id,
+          payment
+        );
+
+      
+
+       
+
+      } catch (error) {
+
+        console.error(error);
+
+      }
+
+    };
+    if (loading) {
+
   return (
-    <div className="space-y-6">
 
-      {/* Statistics */}
+    <div className="rounded-2xl border bg-white p-10 text-center">
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      Loading appointments...
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-slate-500">
-            Total Appointments
-          </p>
+    </div>
 
-          <h2 className="mt-3 text-3xl font-bold">
-            {totalAppointments}
-          </h2>
-        </div>
+  );
 
-        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-6">
-          <p className="text-yellow-700">
-            Pending
-          </p>
+}
 
-          <h2 className="mt-3 text-3xl font-bold text-yellow-700">
-            {pendingAppointments}
-          </h2>
-        </div>
+return (
 
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
-          <p className="text-blue-700">
-            Confirmed
-          </p>
+  <div className="space-y-6">
 
-          <h2 className="mt-3 text-3xl font-bold text-blue-700">
-            {confirmedAppointments}
-          </h2>
-        </div>
+    {/* ========================= */}
+    {/* Header */}
+    {/* ========================= */}
 
-        <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
-          <p className="text-green-700">
-            Completed
-          </p>
+    <div className="flex items-center justify-between">
 
-          <h2 className="mt-3 text-3xl font-bold text-green-700">
-            {completedAppointments}
-          </h2>
-        </div>
+      <div>
+
+        <h1 className="text-3xl font-bold">
+          Appointments
+        </h1>
+
+        <p className="mt-1 text-slate-500">
+          Manage all patient appointments.
+        </p>
 
       </div>
 
-      {/* Header */}
+      <Link
+        href="/dashboard/appointments/add"
+        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 font-medium text-white transition hover:bg-slate-800"
+      >
+        <Plus size={18} />
+        Add Appointment
+      </Link>
 
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+    </div>
 
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">
-            Appointment List
-          </h2>
+    {/* ========================= */}
+    {/* Statistics */}
+    {/* ========================= */}
 
-          <p className="mt-1 text-slate-500">
-            Manage online and offline patient appointments.
-          </p>
-        </div>
+    <AppointmentStats
+      appointments={appointments}
+    />
 
-        <Link
-          href="/dashboard/appointments/add"
-          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-medium text-white transition hover:bg-blue-700"
-        >
-          <Plus size={18} />
-          Add Appointment
-        </Link>
+    {/* ========================= */}
+    {/* Filters */}
+    {/* ========================= */}
 
-      </div>
+    <AppointmentFilters
 
-      {/* Filters */}
+      search={search}
+      setSearch={setSearch}
 
-      <AppointmentFilters
-        search={search}
-        setSearch={setSearch}
-        treatment={treatment}
-        setTreatment={setTreatment}
-        doctor={doctor}
-        setDoctor={setDoctor}
-        status={status}
-        setStatus={setStatus}
-        payment={payment}
-        setPayment={setPayment}
-        date={date}
-        setDate={setDate}
-        sort={sort}
-        setSort={setSort}
-        onClear={clearFilters}
-      />
-            {/* Table */}
+      treatment={treatment}
+      setTreatment={setTreatment}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      doctor={doctor}
+      setDoctor={setDoctor}
 
-        <div className="overflow-x-auto">
+      status={status}
+      setStatus={setStatus}
 
-          <table className="min-w-full">
+      payment={payment}
+      setPayment={setPayment}
 
-            <thead className="bg-slate-100">
+      date={date}
+      setDate={setDate}
 
-              <tr>
+      sort={sort}
+      setSort={setSort}
 
-                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
-                  Patient
-                </th>
+      onClear={handleReset}
 
-                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
-                  Treatment
-                </th>
+    />
 
-                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
-                  Doctor
-                </th>
+    {/* ========================= */}
+    {/* Table */}
+    {/* ========================= */}
 
-                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
-                  Appointment
-                </th>
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
-                  Status
-                </th>
+      <div className="overflow-x-auto">
 
-                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
-                  Payment
-                </th>
+        <table className="min-w-full">
 
-                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
-                  Actions
-                </th>
+          <thead className="bg-slate-50">
 
-              </tr>
+            <tr className="text-left text-sm font-semibold text-slate-700">
 
-            </thead>
+              <th className="px-5 py-4">
+                Patient
+              </th>
 
-            <tbody>
+              <th className="px-5 py-4">
+                Doctor
+              </th>
 
-              {paginatedAppointments.length === 0 ? (
+              <th className="px-5 py-4">
+                Treatment
+              </th>
+
+              <th className="px-5 py-4">
+                Date & Time
+              </th>
+
+              <th className="px-5 py-4">
+                Status
+              </th>
+
+              <th className="px-5 py-4">
+                Payment
+              </th>
+
+              <th className="px-5 py-4 text-right">
+                Action
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            {
+
+              paginatedAppointments.length === 0
+
+              ?
+
+              (
 
                 <tr>
 
                   <td
                     colSpan={7}
-                    className="px-6 py-16 text-center text-slate-500"
+                    className="py-20"
                   >
-                    No appointments found.
+
+                    <div className="flex flex-col items-center gap-3">
+
+                      <SearchX
+                        size={48}
+                        className="text-slate-400"
+                      />
+
+                      <h3 className="text-lg font-semibold">
+
+                        No appointments found
+
+                      </h3>
+
+                      <p className="text-sm text-slate-500">
+
+                        Try changing the filters.
+
+                      </p>
+
+                    </div>
+
                   </td>
 
                 </tr>
 
-              ) : (
+              )
 
-                paginatedAppointments.map((appointment) => (
+              :
 
-                  <tr
+              paginatedAppointments.map(
+                (appointment) => (
+
+                  <AppointmentRow
+
                     key={appointment.id}
-                    className="border-t border-slate-200 transition hover:bg-slate-50"
-                  >
 
-                    {/* Patient */}
+                    appointment={appointment}
 
-                    <td className="px-6 py-5">
+                    onStatusChange={
+                      handleStatusChange
+                    }
 
-                      <div>
+                    onPaymentChange={
+                      handlePaymentChange
+                    }
 
-                        <h3 className="font-semibold text-slate-800">
-                          {appointment.patientName}
-                        </h3>
+                    onDelete={
+                      handleDeleteClick
+                    }
 
-                        <p className="mt-1 text-sm text-slate-500">
-                          {appointment.phone}
-                        </p>
+                  />
 
-                        <p className="text-sm text-slate-500">
-                          {appointment.email}
-                        </p>
+                )
+              )
 
-                      </div>
+            }
 
-                    </td>
+          </tbody>
 
-                    {/* Treatment */}
-
-                    <td className="px-6 py-5">
-
-                      <span className="font-medium text-slate-700">
-                        {appointment.treatment}
-                      </span>
-
-                    </td>
-
-                    {/* Doctor */}
-
-                    <td className="px-6 py-5">
-
-                      <span className="text-slate-700">
-                        {appointment.doctor}
-                      </span>
-
-                    </td>
-
-                    {/* Appointment Date */}
-
-                    <td className="px-6 py-5">
-
-                      <div>
-
-                        <p className="font-medium text-slate-700">
-                          {appointment.appointmentDate}
-                        </p>
-
-                        <p className="text-sm text-slate-500">
-                          {appointment.appointmentTime || "--"}
-                        </p>
-
-                      </div>
-
-                    </td>
-
-                    {/* Status */}
-
-                    <td className="px-6 py-5 text-center">
-
-                      <AppointmentStatus
-                        status={appointment.status}
-                      />
-
-                    </td>
-
-                    {/* Payment */}
-
-                    <td className="px-6 py-5 text-center">
-
-                      <PaymentStatus
-                        status={appointment.payment}
-                      />
-
-                    </td>
-
-                    {/* Actions */}
-
-                    <td className="px-6 py-5 text-center">
-
-                      <AppointmentActions
-                        id={appointment.id!}
-                        phone={appointment.phone}
-                        email={appointment.email ?? ""}
-                        status={appointment.status}
-                        payment={appointment.payment}
-                        onStatusChange={handleStatusChange}
-                        onPaymentChange={handlePaymentChange}
-                        onDelete={handleDelete}
-                      />
-
-                    </td>
-
-                  </tr>
-
-                ))
-
-              )}
-
-            </tbody>
-
-          </table>
-
-        </div>
+        </table>
 
       </div>
-            {/* Pagination */}
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-6 py-4">
-
-          <p className="text-sm text-slate-500">
-            Showing{" "}
-            <span className="font-semibold">
-              {(page - 1) * ITEMS_PER_PAGE + 1}
-            </span>{" "}
-            -
-            <span className="font-semibold">
-              {" "}
-              {Math.min(
-                page * ITEMS_PER_PAGE,
-                filteredAppointments.length
-              )}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold">
-              {filteredAppointments.length}
-            </span>{" "}
-            appointments
-          </p>
-
-          <div className="flex items-center gap-2">
-
-            <button
-              onClick={() =>
-                setPage((prev) =>
-                  Math.max(prev - 1, 1)
-                )
-              }
-              disabled={page === 1}
-              className="
-                rounded-lg
-                border
-                border-slate-300
-                px-4
-                py-2
-                text-sm
-                transition
-                hover:bg-slate-100
-                disabled:cursor-not-allowed
-                disabled:opacity-50
-              "
-            >
-              Previous
-            </button>
-
-            {Array.from(
-              { length: totalPages },
-              (_, index) => (
-                <button
-                  key={index}
-                  onClick={() =>
-                    setPage(index + 1)
-                  }
-                  className={`
-                    h-10
-                    w-10
-                    rounded-lg
-                    text-sm
-                    font-semibold
-                    transition
-                    ${
-                      page === index + 1
-                        ? "bg-blue-600 text-white"
-                        : "border border-slate-300 hover:bg-slate-100"
-                    }
-                  `}
-                >
-                  {index + 1}
-                </button>
-              )
-            )}
-
-            <button
-              onClick={() =>
-                setPage((prev) =>
-                  Math.min(prev + 1, totalPages)
-                )
-              }
-              disabled={page === totalPages}
-              className="
-                rounded-lg
-                border
-                border-slate-300
-                px-4
-                py-2
-                text-sm
-                transition
-                hover:bg-slate-100
-                disabled:cursor-not-allowed
-                disabled:opacity-50
-              "
-            >
-              Next
-            </button>
-
-          </div>
-
-        </div>
-      )}
-
-      {/* Delete Modal */}
-
-      <DeleteAppointmentModal
-        open={deleteOpen}
-        appointment={selectedAppointment}
-        onClose={() => {
-          setDeleteOpen(false);
-          setSelectedAppointment(null);
-        }}
-        onConfirm={confirmDelete}
-      />
 
     </div>
-  );
+
+    {/* ========================= */}
+    {/* Pagination */}
+    {/* ========================= */}
+
+    {
+
+      totalPages > 1 && (
+
+      <AppointmentPagination
+  currentPage={currentPage}
+  totalPages={totalPages}
+  totalItems={filteredAppointments.length}
+  itemsPerPage={ITEMS_PER_PAGE}
+  onPageChange={setCurrentPage}
+/>
+
+      )
+
+    }
+
+    {/* ========================= */}
+    {/* Delete Modal */}
+    {/* ========================= */}
+
+  <DeleteAppointmentModal
+        open={showDelete}
+        appointment={selectedAppointment}
+        onClose={() => {
+          setShowDelete(false);
+          setSelectedAppointment(null);
+        }}
+        onConfirm={handleDelete}
+      />
+
+  </div>
+
+);
 }

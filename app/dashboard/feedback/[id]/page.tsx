@@ -1,171 +1,847 @@
-import Image from "next/image";
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
 import Link from "next/link";
+
+import {
+  useParams,
+  useRouter,
+} from "next/navigation";
+
 import {
   ArrowLeft,
-  CalendarDays,
   Pencil,
-  Trash2,
-  Stethoscope,
-  User,
 } from "lucide-react";
-import FeedbackRating from "@/app/components/feedback/RatingStars";
+
+import { feedbackAPI } from "@/app/services/feedback.api";
+
+import type { Feedback } from "@/types/feedback";
+
+import RatingStars from "@/app/components/feedback/RatingStars";
+
 import FeedbackStatus from "@/app/components/feedback/FeedbackStatus";
 
+// =====================================================
+// DEFAULT IMAGE
+// =====================================================
 
+const DEFAULT_IMAGE =
+  "/images/default-user.png";
 
-interface FeedbackDetailsPageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
+// =====================================================
+// GET IMAGE URL
+// =====================================================
 
-export default async function FeedbackDetailsPage({
-  params,
-}: FeedbackDetailsPageProps) {
-  const { id } = await params;
+const getImageUrl = (
+  image?: string | null
+): string => {
+  // ---------------------------------------------------
+  // No image
+  // ---------------------------------------------------
 
-  // Temporary Data
-  const feedback = {
-    id,
-    patient: "Rahul Sharma",
-    image: "/patients/patient-1.jpg",
-    treatment: "Dental Implant",
-    rating: 5,
-    status: "Approved" as const,
-    featured: true,
-    date: "12 Jul 2026",
-    testimonial:
-      "I had an amazing experience with Dr. Sultan Dental Care. The staff was friendly, the clinic was clean, and the implant treatment was completely painless. Highly recommended!",
-  };
+  if (
+    !image ||
+    !image.trim()
+  ) {
+    return DEFAULT_IMAGE;
+  }
+
+  const imagePath =
+    image.trim();
+
+  // ---------------------------------------------------
+  // Already full URL
+  // ---------------------------------------------------
+
+  if (
+    imagePath.startsWith("http://") ||
+    imagePath.startsWith("https://") ||
+    imagePath.startsWith("blob:") ||
+    imagePath.startsWith("data:")
+  ) {
+    return imagePath;
+  }
+
+  // ---------------------------------------------------
+  // API URL
+  // ---------------------------------------------------
+
+  const apiUrl =
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:5000";
+
+  // ---------------------------------------------------
+  // Remove trailing slash
+  // Remove /api if present
+  // ---------------------------------------------------
+
+  const serverUrl =
+    apiUrl
+      .replace(/\/+$/, "")
+      .replace(/\/api$/, "");
+
+  // ---------------------------------------------------
+  // Clean image path
+  // ---------------------------------------------------
+
+  let cleanImagePath =
+    imagePath.replace(
+      /^\/+/,
+      ""
+    );
+
+  // ---------------------------------------------------
+  // Remove /api/
+  // ---------------------------------------------------
+
+  cleanImagePath =
+    cleanImagePath.replace(
+      /^api\//,
+      ""
+    );
+
+  // ---------------------------------------------------
+  // IMPORTANT
+  //
+  // If DB contains:
+  //
+  // feedback/file.jpg
+  //
+  // result:
+  //
+  // http://localhost:5000/feedback/file.jpg
+  //
+  // If DB contains:
+  //
+  // uploads/feedback/file.jpg
+  //
+  // result:
+  //
+  // http://localhost:5000/uploads/feedback/file.jpg
+  // ---------------------------------------------------
+
+  const finalUrl =
+    `${serverUrl}/${cleanImagePath}`;
+
+  console.log(
+    "========== FEEDBACK IMAGE =========="
+  );
+
+  console.log(
+    "IMAGE FROM DATABASE:",
+    image
+  );
+
+  console.log(
+    "SERVER URL:",
+    serverUrl
+  );
+
+  console.log(
+    "CLEAN IMAGE PATH:",
+    cleanImagePath
+  );
+
+  console.log(
+    "FINAL IMAGE URL:",
+    finalUrl
+  );
+
+  console.log(
+    "===================================="
+  );
+
+  return finalUrl;
+};
+
+export default function FeedbackDetailsPage() {
+  const router = useRouter();
+
+  const params = useParams();
+
+  // =====================================================
+  // GET ID
+  // =====================================================
+
+  const rawId = params?.id;
+
+  const id = Number(
+    Array.isArray(rawId)
+      ? rawId[0]
+      : rawId
+  );
+
+  // =====================================================
+  // STATE
+  // =====================================================
+
+  const [
+    feedback,
+    setFeedback,
+  ] = useState<Feedback | null>(null);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  // =====================================================
+  // LOAD FEEDBACK
+  // =====================================================
+
+  const loadFeedback =
+    useCallback(async () => {
+      if (
+        !Number.isInteger(id) ||
+        id <= 0
+      ) {
+        router.replace(
+          "/dashboard/feedback"
+        );
+
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+
+        console.log(
+          "=========================================="
+        );
+
+        console.log(
+          "GET FEEDBACK"
+        );
+
+        console.log(
+          "FEEDBACK ID:",
+          id
+        );
+
+        const response =
+          await feedbackAPI.getById(id);
+
+        console.log(
+          "RAW FEEDBACK RESPONSE:",
+          response
+        );
+
+        // =================================================
+        // RESPONSE DATA
+        // =================================================
+
+        let rawData: any;
+
+        if (
+          response &&
+          typeof response === "object" &&
+          "data" in response
+        ) {
+          rawData =
+            (response as any).data;
+        } else {
+          rawData =
+            response;
+        }
+
+        console.log(
+          "RAW FEEDBACK DATA:",
+          rawData
+        );
+
+        if (
+          !rawData ||
+          !rawData.id
+        ) {
+          throw new Error(
+            "Feedback not found."
+          );
+        }
+
+        // =================================================
+        // NORMALIZE DATABASE → FRONTEND
+        // =================================================
+        //
+        // Database:
+        // patient_image
+        //
+        // Frontend:
+        // patientImage
+        //
+        // =================================================
+
+        const normalizedFeedback: Feedback = {
+          id: Number(
+            rawData.id
+          ),
+
+          patientName:
+            rawData.patientName ??
+            rawData.patient_name ??
+            "",
+
+          patientImage:
+            rawData.patientImage ??
+            rawData.patient_image ??
+            null,
+
+          treatment:
+            rawData.treatment ??
+            "",
+
+          rating:
+            Number(
+              rawData.rating
+            ) || 0,
+
+          review:
+            rawData.review ??
+            "",
+
+          status:
+            rawData.status ??
+            "Inactive",
+
+          date:
+            rawData.date ??
+            "",
+
+          createdAt:
+            rawData.createdAt ??
+            rawData.created_at ??
+            undefined,
+
+          updatedAt:
+            rawData.updatedAt ??
+            rawData.updated_at ??
+            undefined,
+        };
+
+        // =================================================
+        // IMAGE DEBUG
+        // =================================================
+
+        console.log(
+          "=========================================="
+        );
+
+        console.log(
+          "NORMALIZED FEEDBACK:",
+          normalizedFeedback
+        );
+
+        console.log(
+          "DATABASE patient_image:",
+          rawData.patient_image
+        );
+
+        console.log(
+          "FRONTEND patientImage:",
+          normalizedFeedback.patientImage
+        );
+
+        console.log(
+          "IMAGE URL:",
+          getImageUrl(
+            normalizedFeedback.patientImage
+          )
+        );
+
+        console.log(
+          "=========================================="
+        );
+
+        setFeedback(
+          normalizedFeedback
+        );
+      } catch (error) {
+        console.error(
+          "GET FEEDBACK ERROR:",
+          error
+        );
+
+        setFeedback(null);
+
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load feedback."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }, [
+      id,
+      router,
+    ]);
+
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
+
+  useEffect(() => {
+    loadFeedback();
+  }, [
+    loadFeedback,
+  ]);
+
+  // =====================================================
+  // STATUS UPDATE
+  // =====================================================
+
+  const handleStatusUpdate =
+    async (
+      newStatus: Feedback["status"]
+    ) => {
+      if (!feedback) {
+        return;
+      }
+
+      try {
+        await feedbackAPI.updateStatus(
+          feedback.id,
+          newStatus
+        );
+
+        setFeedback(
+          (previous) => {
+            if (!previous) {
+              return previous;
+            }
+
+            return {
+              ...previous,
+              status: newStatus,
+            };
+          }
+        );
+      } catch (error) {
+        console.error(
+          "UPDATE FEEDBACK STATUS ERROR:",
+          error
+        );
+
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Failed to update feedback status."
+        );
+      }
+    };
+
+  // =====================================================
+  // LOADING
+  // =====================================================
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+
+          <div
+            className="
+              mx-auto
+              mb-4
+              h-10
+              w-10
+              animate-spin
+              rounded-full
+              border-4
+              border-slate-200
+              border-t-blue-600
+            "
+          />
+
+          <p className="text-slate-500">
+            Loading feedback...
+          </p>
+
+        </div>
+      </div>
+    );
+  }
+
+  // =====================================================
+  // ERROR
+  // =====================================================
+
+  if (error) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+
+        <div className="max-w-md text-center">
+
+          <h2 className="text-2xl font-bold text-slate-900">
+            Failed to Load Feedback
+          </h2>
+
+          <p className="mt-2 text-sm text-red-500">
+            {error}
+          </p>
+
+          <div className="mt-6 flex justify-center gap-3">
+
+            <button
+              type="button"
+              onClick={
+                loadFeedback
+              }
+              className="
+                rounded-xl
+                bg-slate-900
+                px-5
+                py-3
+                text-sm
+                font-medium
+                text-white
+                transition
+                hover:bg-slate-800
+              "
+            >
+              Try Again
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/dashboard/feedback"
+                )
+              }
+              className="
+                rounded-xl
+                border
+                border-slate-300
+                px-5
+                py-3
+                text-sm
+                font-medium
+                text-slate-700
+                transition
+                hover:bg-slate-50
+              "
+            >
+              Back
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+    );
+  }
+
+  // =====================================================
+  // NOT FOUND
+  // =====================================================
+
+  if (!feedback) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+
+        <div className="text-center">
+
+          <h2 className="text-2xl font-bold text-slate-900">
+            Feedback Not Found
+          </h2>
+
+          <p className="mt-2 text-slate-500">
+            The requested feedback could not be found.
+          </p>
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push(
+                "/dashboard/feedback"
+              )
+            }
+            className="
+              mt-6
+              rounded-xl
+              bg-slate-900
+              px-5
+              py-3
+              text-sm
+              font-medium
+              text-white
+              transition
+              hover:bg-slate-800
+            "
+          >
+            Back to Feedback
+          </button>
+
+        </div>
+
+      </div>
+    );
+  }
+
+  // =====================================================
+  // FINAL IMAGE URL
+  // =====================================================
+
+  const patientImage =
+    getImageUrl(
+      feedback.patientImage
+    );
+
+  // =====================================================
+  // PAGE
+  // =====================================================
 
   return (
     <div className="space-y-6">
 
-      {/* Header */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div
+        className="
+          flex
+          flex-col
+          gap-4
+          md:flex-row
+          md:items-center
+          md:justify-between
+        "
+      >
 
-        <div className="flex items-center gap-4">
+        <div>
+
+          <h1 className="text-3xl font-bold text-slate-900">
+            Feedback Details
+          </h1>
+
+          <p className="mt-1 text-slate-500">
+            Feedback ID #{feedback.id}
+          </p>
+
+        </div>
+
+        <div className="flex items-center gap-3">
+
+          {/* BACK */}
+
+          <button
+            type="button"
+            onClick={() =>
+              router.back()
+            }
+            className="
+              flex
+              items-center
+              gap-2
+              rounded-xl
+              border
+              border-slate-300
+              px-4
+              py-2.5
+              text-sm
+              font-medium
+              text-slate-700
+              transition
+              hover:bg-slate-100
+            "
+          >
+            <ArrowLeft size={18} />
+            Back
+          </button>
+
+          {/* EDIT */}
 
           <Link
-            href="/feedback"
-            className="flex h-10 w-10 items-center justify-center rounded-xl border hover:bg-slate-100"
+            href={`/dashboard/feedback/edit/${feedback.id}`}
+            className="
+              flex
+              items-center
+              gap-2
+              rounded-xl
+              bg-blue-600
+              px-5
+              py-2.5
+              text-sm
+              font-medium
+              text-white
+              transition
+              hover:bg-blue-700
+            "
           >
-            <ArrowLeft size={20} />
+            <Pencil size={17} />
+            Edit
           </Link>
+
+        </div>
+
+      </div>
+
+      {/* =================================================
+          PATIENT CARD
+      ================================================= */}
+
+      <div
+        className="
+          rounded-2xl
+          border
+          border-slate-200
+          bg-white
+          p-6
+          shadow-sm
+        "
+      >
+
+        <div className="flex items-center gap-5">
+
+          {/* PATIENT IMAGE */}
+
+          <img
+            src={patientImage}
+            alt={
+              feedback.patientName ||
+              "Patient"
+            }
+            className="
+              h-[90px]
+              w-[90px]
+              rounded-full
+              border
+              border-slate-200
+              object-cover
+            "
+            onError={(event) => {
+              const image =
+                event.currentTarget;
+
+              if (
+                !image.src.includes(
+                  DEFAULT_IMAGE
+                )
+              ) {
+                image.src =
+                  DEFAULT_IMAGE;
+              }
+            }}
+          />
+
+          {/* PATIENT INFO */}
 
           <div>
 
-            <h1 className="text-3xl font-bold">
-              Patient Feedback
-            </h1>
+            <h2 className="text-xl font-semibold text-slate-900">
+              {feedback.patientName ||
+                "-"}
+            </h2>
 
-            <p className="text-slate-500">
-              Review Details
+            <p className="mt-1 text-sm text-slate-500">
+              Patient
             </p>
 
           </div>
 
         </div>
 
-        <div className="flex gap-3">
-
-          <Link
-            href={`/feedback/${feedback.id}/edit`}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-white hover:bg-blue-700"
-          >
-            <Pencil size={18} />
-            Edit
-          </Link>
-
-          <button className="flex items-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-white hover:bg-red-700">
-            <Trash2 size={18} />
-            Delete
-          </button>
-
-        </div>
-
       </div>
 
-      {/* Profile */}
+      {/* =================================================
+          FEEDBACK INFORMATION
+      ================================================= */}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div
+        className="
+          rounded-2xl
+          border
+          border-slate-200
+          bg-white
+          p-6
+          shadow-sm
+        "
+      >
 
-        {/* Left */}
+        <h2 className="mb-6 text-xl font-semibold text-slate-900">
+          Feedback Information
+        </h2>
 
-        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="grid gap-6 md:grid-cols-2">
 
-          <div className="flex flex-col items-center">
+          {/* TREATMENT */}
 
-            <Image
-              src={feedback.image}
-              alt={feedback.patient}
-              width={140}
-              height={140}
-              className="rounded-full object-cover"
-            />
+          <div>
 
-            <h2 className="mt-4 text-2xl font-bold">
-              {feedback.patient}
-            </h2>
+            <p className="mb-1 text-sm text-slate-500">
+              Treatment
+            </p>
 
-            <div className="mt-3">
-              <FeedbackRating rating={feedback.rating} />
-            </div>
-
-            <div className="mt-4">
-              <FeedbackStatus status={feedback.status} />
-            </div>
-
-            {feedback.featured && (
-              <span className="mt-4 rounded-full bg-yellow-100 px-4 py-2 text-sm font-semibold text-yellow-700">
-                ⭐ Featured Testimonial
-              </span>
-            )}
+            <p className="font-medium text-slate-900">
+              {feedback.treatment ||
+                "-"}
+            </p>
 
           </div>
 
-        </div>
+          {/* DATE */}
 
-        {/* Right */}
+          <div>
 
-        <div className="rounded-2xl border bg-white p-6 shadow-sm lg:col-span-2">
+            <p className="mb-1 text-sm text-slate-500">
+              Date
+            </p>
 
-          <h2 className="mb-6 text-xl font-semibold">
-            Patient Information
-          </h2>
+            <p className="font-medium text-slate-900">
+              {feedback.date ||
+                "-"}
+            </p>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          </div>
 
-            <InfoItem
-              icon={<User size={18} />}
-              label="Patient Name"
-              value={feedback.patient}
+          {/* RATING */}
+
+          <div>
+
+            <p className="mb-2 text-sm text-slate-500">
+              Rating
+            </p>
+
+            <RatingStars
+              rating={
+                Number(
+                  feedback.rating
+                ) || 0
+              }
             />
 
-            <InfoItem
-              icon={<Stethoscope size={18} />}
-              label="Treatment"
-              value={feedback.treatment}
+          </div>
+
+          {/* STATUS */}
+
+          <div>
+
+            <p className="mb-2 text-sm text-slate-500">
+              Status
+            </p>
+
+            <FeedbackStatus
+              id={feedback.id}
+              status={
+                feedback.status
+              }
+              onUpdate={
+                handleStatusUpdate
+              }
             />
-
-            <InfoItem
-              icon={<CalendarDays size={18} />}
-              label="Review Date"
-              value={feedback.date}
-            />
-
-            <div>
-
-              <p className="mb-2 text-sm text-slate-500">
-                Status
-              </p>
-
-              <FeedbackStatus
-                status={feedback.status}
-              />
-
-            </div>
 
           </div>
 
@@ -173,49 +849,33 @@ export default async function FeedbackDetailsPage({
 
       </div>
 
-      {/* Testimonial */}
+      {/* =================================================
+          PATIENT REVIEW
+      ================================================= */}
 
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
+      <div
+        className="
+          rounded-2xl
+          border
+          border-slate-200
+          bg-white
+          p-6
+          shadow-sm
+        "
+      >
 
-        <h2 className="mb-5 text-xl font-semibold">
+        <h2 className="mb-4 text-xl font-semibold text-slate-900">
           Patient Review
         </h2>
 
-        <blockquote className="rounded-xl border-l-4 border-blue-600 bg-slate-50 p-6 leading-8 italic text-slate-700">
-          "{feedback.testimonial}"
-        </blockquote>
+        <div className="rounded-xl bg-slate-50 p-5">
 
-      </div>
+          <p className="leading-7 text-slate-600">
+            {feedback.review ||
+              "No review provided."}
+          </p>
 
-    </div>
-  );
-}
-
-function InfoItem({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-
-      <div className="mt-1 text-blue-600">
-        {icon}
-      </div>
-
-      <div>
-
-        <p className="text-sm text-slate-500">
-          {label}
-        </p>
-
-        <p className="font-semibold text-slate-800">
-          {value}
-        </p>
+        </div>
 
       </div>
 

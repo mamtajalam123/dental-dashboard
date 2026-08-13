@@ -1,188 +1,789 @@
 "use client";
 
-import { useMemo, useState } from "react";
-
 import {
-  TeamMember,
-  teamMembers,
-} from "@/data/team";
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import { SearchX } from "lucide-react";
 
 import TeamFilters from "./TeamFilters";
 import TeamRow from "./TeamRow";
 import TeamDeleteModal from "./TeamDeleteModal";
 
+import { teamAPI } from "@/app/services/team.api";
+import { designationAPI } from "@/app/services/designation.api";
+
+import { Team } from "@/app/types/team";
+import { Designation } from "@/app/types/designation";
+
+
 export default function TeamTable() {
 
-  const [members, setMembers] =
-    useState<TeamMember[]>(teamMembers);
 
-  const [search, setSearch] =
-    useState("");
+  const [members,setMembers] =
+  useState<Team[]>([]);
 
-  const [designation, setDesignation] =
-    useState("");
 
-  const [status, setStatus] =
-    useState("");
+  const [designations,setDesignations] =
+  useState<Designation[]>([]);
 
-  const [selectedId, setSelectedId] =
-    useState<number | null>(null);
 
-  const [deleteOpen, setDeleteOpen] =
-    useState(false);
+  const [loading,setLoading] =
+  useState(true);
 
-  const filteredMembers = useMemo(() => {
 
-    return members.filter((member) => {
+  const [loadingDesignations,setLoadingDesignations] =
+  useState(true);
 
-      const searchMatch =
-        member.name
-          .toLowerCase()
-          .includes(search.toLowerCase());
 
-      const designationMatch =
-        designation === "" ||
-        member.designation === designation;
 
-      const statusMatch =
-        status === "" ||
-        member.status === status;
+  const [search,setSearch] =
+  useState("");
 
-      return (
-        searchMatch &&
-        designationMatch &&
-        statusMatch
-      );
 
-    });
 
-  }, [
-    members,
-    search,
-    designation,
-    status,
-  ]);
+  const [designationId,setDesignationId] =
+  useState(0);
 
-  const handleDeleteClick = (
-    id: number
-  ) => {
 
-    setSelectedId(id);
 
-    setDeleteOpen(true);
+  const [status,setStatus] =
+  useState<
+  "All" | "Active" | "Inactive"
+  >("All");
 
-  };
 
-  const confirmDelete = () => {
 
-    if (selectedId === null) return;
+  const [selectedMember,setSelectedMember] =
+  useState<Team | null>(null);
 
-    setMembers((prev) =>
-      prev.filter(
-        (member) =>
-          member.id !== selectedId
-      )
-    );
 
-    setDeleteOpen(false);
 
-    setSelectedId(null);
+  const [showDelete,setShowDelete] =
+  useState(false);
 
-  };
 
-  return (
-    <div className="space-y-6">
 
-      <TeamFilters
-        search={search}
-        designation={designation}
-        status={status}
-        onSearchChange={setSearch}
-        onDesignationChange={setDesignation}
-        onStatusChange={setStatus}
-      />
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-        <div className="overflow-x-auto">
+// =================================
+// IMAGE URL
+// =================================
 
-          <table className="min-w-full">
 
-            <thead className="bg-slate-100">
+const imageUrl = (image: string | null) => {
+  if (!image) return null;
 
-              <tr>
+  if (image.startsWith("http")) {
+    return image;
+  }
 
-                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
-                  Team Member
-                </th>
+  return `http://localhost:5000${image}`;
+};
 
-                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
-                  Designation
-                </th>
 
-                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
-                  Specialization
-                </th>
 
-                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
-                  Experience
-                </th>
 
-                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
-                  Status
-                </th>
 
-                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
-                  Action
-                </th>
 
-              </tr>
+// =================================
+// LOAD TEAM
+// =================================
 
-            </thead>
 
-            <tbody>
+useEffect(()=>{
 
-              {filteredMembers.length > 0 ? (
+loadMembers();
 
-                filteredMembers.map((member) => (
+},[]);
 
-                  <TeamRow
-                    key={member.id}
-                    member={member}
-                    onDelete={handleDeleteClick}
-                  />
 
-                ))
 
-              ) : (
+const loadMembers = async()=>{
 
-                <tr>
 
-                  <td
-                    colSpan={6}
-                    className="py-12 text-center text-slate-500"
-                  >
-                    No team members found.
-                  </td>
+try{
 
-                </tr>
 
-              )}
+setLoading(true);
 
-            </tbody>
 
-          </table>
 
-        </div>
+const response =
+await teamAPI.getAll();
 
-      </div>
 
-      <TeamDeleteModal
-        open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        onConfirm={confirmDelete}
-      />
 
-    </div>
-  );
+const data =
+Array.isArray(response)
+?
+response
+:
+response.data ?? [];
+
+
+
+
+
+const formatted = response.map((item: any) => ({
+  id: item.id,
+  name: item.name,
+
+  designationId:
+    Number(item.designation_id),
+
+  designation:
+    item.designation ??
+    item.designation_name ??
+    "Not Assigned",
+
+  specialization:
+    item.specialization,
+
+  experience:
+    item.experience,
+
+  email:
+    item.email,
+
+  phone:
+    item.phone,
+
+  bio:
+    item.bio,
+
+  image:
+    imageUrl(item.image),
+
+  status:
+    item.status,
+}));
+
+
+setMembers(formatted);
+
+
+
+}
+catch(error){
+
+
+console.error(
+"TEAM LOAD ERROR",
+error
+);
+
+
+setMembers([]);
+
+
+}
+finally{
+
+
+setLoading(false);
+
+
+}
+
+
+};
+
+
+
+
+
+
+
+
+// =================================
+// LOAD DESIGNATIONS
+// =================================
+
+
+useEffect(()=>{
+
+loadDesignations();
+
+},[]);
+
+
+
+const loadDesignations =
+async()=>{
+
+
+try{
+
+
+setLoadingDesignations(true);
+
+
+
+const response =
+await designationAPI.getAll();
+
+
+
+const data =
+Array.isArray(response)
+?
+response
+:
+response.data ?? [];
+
+
+
+
+setDesignations(
+
+data.filter(
+(item:Designation)=>
+item.status==="Active"
+)
+
+);
+
+
+
+}
+catch(error){
+
+
+console.error(
+error
+);
+
+
+setDesignations([]);
+
+
+}
+finally{
+
+
+setLoadingDesignations(false);
+
+
+}
+
+
+};
+
+
+
+
+
+
+
+
+
+// =================================
+// FILTER
+// =================================
+
+
+const filteredMembers =
+useMemo(()=>{
+
+
+return members.filter(
+(member)=>{
+
+
+const searchText =
+search.toLowerCase();
+
+
+
+const searchMatch =
+
+member.name
+.toLowerCase()
+.includes(searchText)
+
+||
+member.email
+.toLowerCase()
+.includes(searchText)
+
+||
+member.phone
+.includes(search);
+
+
+
+
+const designationMatch =
+
+designationId===0
+
+?
+
+true
+
+:
+
+member.designationId === designationId;
+
+
+
+
+const statusMatch =
+
+status==="All"
+
+?
+
+true
+
+:
+
+member.status===status;
+
+
+
+
+return (
+
+searchMatch &&
+
+designationMatch &&
+
+statusMatch
+
+);
+
+
+}
+
+);
+
+
+},[
+members,
+search,
+designationId,
+status
+]);
+
+
+
+
+
+
+
+
+// =================================
+// DELETE
+// =================================
+
+
+const handleDeleteClick =
+(member:Team)=>{
+
+
+setSelectedMember(member);
+
+setShowDelete(true);
+
+
+};
+
+
+
+
+
+const handleDelete =
+async()=>{
+
+
+if(!selectedMember)
+return;
+
+
+
+try{
+
+
+const response =
+await teamAPI.delete(
+selectedMember.id
+);
+
+
+
+if(response.success){
+
+
+await loadMembers();
+
+
+}
+
+
+
+setShowDelete(false);
+
+setSelectedMember(null);
+
+
+
+}
+catch(error){
+
+
+console.error(
+"DELETE ERROR",
+error
+);
+
+
+alert(
+"Delete failed"
+);
+
+
+}
+
+
+
+};
+
+
+
+
+
+
+
+
+
+// =================================
+// RESET
+// =================================
+
+
+const handleReset = ()=>{
+
+
+setSearch("");
+
+setDesignationId(0);
+
+setStatus("All");
+
+
+};
+
+
+
+
+
+
+
+
+if(
+loading ||
+loadingDesignations
+){
+
+
+return (
+
+<div className="
+rounded-2xl
+border
+bg-white
+p-10
+text-center
+">
+
+Loading Team Members...
+
+</div>
+
+);
+
+
+}
+
+
+
+
+
+
+
+return (
+
+<div className="space-y-6">
+
+
+
+
+
+<TeamFilters
+
+
+search={search}
+
+
+designationId={designationId}
+
+
+status={status}
+
+
+designations={designations}
+
+
+loading={
+loading ||
+loadingDesignations
+}
+
+
+onSearchChange={
+setSearch
+}
+
+
+onDesignationChange={
+setDesignationId
+}
+
+
+onStatusChange={
+setStatus
+}
+
+
+onReset={
+handleReset
+}
+
+
+/>
+
+
+
+
+
+
+
+
+
+
+<div className="
+overflow-hidden
+rounded-2xl
+border
+bg-white
+shadow-sm
+">
+
+
+<div className="overflow-x-auto">
+
+
+<table className="min-w-full">
+
+
+
+<thead className="bg-slate-50">
+
+
+<tr>
+
+
+<th className="px-5 py-4 text-left">
+
+Team Member
+
+</th>
+
+
+
+<th className="px-5 py-4 text-left">
+
+Designation
+
+</th>
+
+
+
+<th className="px-5 py-4 text-left">
+
+Specialization
+
+</th>
+
+
+
+<th className="px-5 py-4 text-left">
+
+Experience
+
+</th>
+
+
+
+<th className="px-5 py-4 text-left">
+
+Status
+
+</th>
+
+
+
+<th className="px-5 py-4 text-left">
+
+Action
+
+</th>
+
+
+
+</tr>
+
+
+</thead>
+
+
+
+
+
+<tbody>
+
+
+{
+
+filteredMembers.length===0 ?
+
+
+<tr>
+
+<td
+colSpan={6}
+className="py-16"
+>
+
+
+<div className="
+flex
+flex-col
+items-center
+gap-3
+">
+
+
+<SearchX
+size={48}
+/>
+
+
+<h3 className="font-semibold">
+
+No Team Members Found
+
+</h3>
+
+
+</div>
+
+
+</td>
+
+
+</tr>
+
+
+:
+
+
+filteredMembers.map(
+(member)=>(
+
+
+<TeamRow
+
+
+key={member.id}
+
+
+member={member}
+
+
+onDelete={
+handleDeleteClick
+}
+
+
+/>
+
+
+)
+
+)
+
+
+}
+
+
+
+</tbody>
+
+
+
+</table>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<TeamDeleteModal
+
+
+open={showDelete}
+
+
+member={selectedMember}
+
+
+onClose={()=>{
+
+
+setShowDelete(false);
+
+setSelectedMember(null);
+
+
+}}
+
+
+
+onConfirm={
+handleDelete
+}
+
+
+
+/>
+
+
+
+</div>
+
+);
+
+
 }

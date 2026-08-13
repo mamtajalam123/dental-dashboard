@@ -1,45 +1,52 @@
 "use client";
 
+import { useState } from "react";
 import { X, Trash2 } from "lucide-react";
 
-import { Category } from "@/types/category";
-
+import { Designation } from "@/types/designation";
 
 interface DeleteDesignationModalProps {
+  open: boolean;
 
-  open:boolean;
+  designation: Designation | null;
 
-  designation:Category | null;
+  onClose: () => void;
 
-  onClose:()=>void;
-
-  onConfirm:()=>void;
-
+  onConfirm: () => Promise<void>;
 }
 
-
-
 export default function DeleteDesignationModal({
-
   open,
-
   designation,
-
   onClose,
-
   onConfirm,
+}: DeleteDesignationModalProps) {
+  const [loading, setLoading] =
+    useState(false);
 
-}:DeleteDesignationModalProps){
-
-
-
-  if(!open || !designation)
+  if (!open || !designation) {
     return null;
+  }
 
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
 
+      await onConfirm();
+
+      onClose();
+    } catch (error) {
+      console.error(error);
+
+      alert(
+        "Failed to delete designation."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-
     <div
       className="
         fixed
@@ -52,8 +59,6 @@ export default function DeleteDesignationModal({
         px-4
       "
     >
-
-
       <div
         className="
           w-full
@@ -64,29 +69,10 @@ export default function DeleteDesignationModal({
           shadow-xl
         "
       >
-
-
-
         {/* Header */}
 
-        <div
-          className="
-            flex
-            items-center
-            justify-between
-          "
-        >
-
-
-          <div
-            className="
-              flex
-              items-center
-              gap-3
-            "
-          >
-
-
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <div
               className="
                 flex
@@ -98,78 +84,33 @@ export default function DeleteDesignationModal({
                 bg-red-100
               "
             >
-
               <Trash2
                 size={22}
                 className="text-red-600"
               />
-
             </div>
 
-
-
-
-            <h2
-              className="
-                text-xl
-                font-bold
-                text-slate-800
-              "
-            >
-
+            <h2 className="text-xl font-bold text-slate-800">
               Delete Designation
-
             </h2>
-
-
           </div>
 
-
-
-
           <button
-
             onClick={onClose}
-
-            className="
-              rounded-lg
-              p-2
-              hover:bg-slate-100
-            "
-
+            disabled={loading}
+            className="rounded-lg p-2 hover:bg-slate-100"
           >
-
-            <X size={20}/>
-
+            <X size={20} />
           </button>
-
-
-
         </div>
-
-
-
-
-
-
 
         {/* Content */}
 
-
         <div className="mt-6">
-
-
-          <p
-            className="
-              text-slate-600
-            "
-          >
-
-            Are you sure you want to delete this designation?
-
+          <p className="text-slate-600">
+            Are you sure you want to delete this
+            designation?
           </p>
-
-
 
           <div
             className="
@@ -179,62 +120,22 @@ export default function DeleteDesignationModal({
               p-4
             "
           >
-
-            <h3
-              className="
-                font-semibold
-                text-slate-800
-              "
-            >
-
+            <h3 className="font-semibold text-slate-800">
               {designation.name}
-
             </h3>
 
-
-
-            <p
-              className="
-                mt-1
-                text-sm
-                text-slate-500
-              "
-            >
-
+            <p className="mt-1 text-sm text-slate-500">
               Team Designation
-
             </p>
-
-
-
           </div>
-
-
         </div>
-
-
-
-
-
-
 
         {/* Buttons */}
 
-
-        <div
-          className="
-            mt-6
-            flex
-            justify-end
-            gap-3
-          "
-        >
-
-
+        <div className="mt-6 flex justify-end gap-3">
           <button
-
             onClick={onClose}
-
+            disabled={loading}
             className="
               rounded-xl
               border
@@ -243,23 +144,15 @@ export default function DeleteDesignationModal({
               font-medium
               text-slate-700
               hover:bg-slate-50
+              disabled:opacity-60
             "
-
           >
-
             Cancel
-
           </button>
 
-
-
-
-
-
           <button
-
-            onClick={onConfirm}
-
+            onClick={handleDelete}
+            disabled={loading}
             className="
               rounded-xl
               bg-red-600
@@ -268,25 +161,15 @@ export default function DeleteDesignationModal({
               font-medium
               text-white
               hover:bg-red-700
+              disabled:opacity-60
             "
-
           >
-
-            Delete
-
+            {loading
+              ? "Deleting..."
+              : "Delete"}
           </button>
-
-
-
         </div>
-
-
-
       </div>
-
-
     </div>
-
   );
-
 }

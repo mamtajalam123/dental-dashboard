@@ -1,17 +1,11 @@
 export interface Category {
+  id?: number;
 
- id:number;
+  name: string;
 
- name:string;
+  status: "Active" | "Inactive";
 
- type:
- "service"
- |
- "designation";
+  createdAt?: string;
 
- status:
- "Active"
- |
- "Inactive";
-
+  updatedAt?: string;
 }

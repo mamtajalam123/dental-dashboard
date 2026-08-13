@@ -20,9 +20,7 @@ export type Appointment = {
   | "Pending"
   | "Confirmed"
   | "Completed"
-  | "Cancelled"
-  | "Rejected"
-  | "No Show";
+  | "Cancelled";
 
 
   payment:
