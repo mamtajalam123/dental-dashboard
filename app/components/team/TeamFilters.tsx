@@ -49,7 +49,7 @@ export default function TeamFilters({
       setLoadingDesignation(true);
 
       const response = await designationAPI.getAll();
-
+      
       const data = Array.isArray(response)
         ? response
         : response.data ?? [];
