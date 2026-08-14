@@ -1,27 +1,25 @@
 export interface Team {
 
-id:number;
+  id?: number;
 
-name:string;
+  name:string;
 
-designationId:number;
+  designationId:number;
 
-designation?:string;
+  designation?:string | null;
 
-specialization:string | null;
+  specialization?:string | null;
 
-experience:string | null;
+  experience?:string | null;
 
-email:string;
+  email?:string | null;
 
-phone:string;
+  phone?:string | null;
 
-image:string | null;
+  image?:string | null;
 
-bio:string | null;
+  bio?:string | null;
 
-status:
-"Active" |
-"Inactive";
+  status:"Active" | "Inactive";
 
 }

@@ -6,63 +6,90 @@ import {
   useState,
 } from "react";
 
-import { SearchX } from "lucide-react";
+import {
+  SearchX,
+} from "lucide-react";
+
 
 import TeamFilters from "./TeamFilters";
 import TeamRow from "./TeamRow";
 import TeamDeleteModal from "./TeamDeleteModal";
 
-import { teamAPI } from "@/app/services/team.api";
-import { designationAPI } from "@/app/services/designation.api";
 
-import { Team } from "@/app/types/team";
-import { Designation } from "@/app/types/designation";
-
-
-export default function TeamTable() {
+import {
+  teamAPI,
+} from "@/app/services/team.api";
 
 
-  const [members,setMembers] =
-  useState<Team[]>([]);
+import {
+  designationAPI,
+} from "@/app/services/designation.api";
 
 
-  const [designations,setDesignations] =
-  useState<Designation[]>([]);
+import {
+  Team,
+} from "@/app/types/team";
 
 
-  const [loading,setLoading] =
-  useState(true);
-
-
-  const [loadingDesignations,setLoadingDesignations] =
-  useState(true);
+import {
+  Designation,
+} from "@/app/types/designation";
 
 
 
-  const [search,setSearch] =
-  useState("");
+
+
+export default function TeamTable(){
+
+
+const [members,setMembers] =
+useState<Team[]>([]);
 
 
 
-  const [designationId,setDesignationId] =
-  useState(0);
+const [designations,setDesignations] =
+useState<Designation[]>([]);
 
 
 
-  const [status,setStatus] =
-  useState<
-  "All" | "Active" | "Inactive"
-  >("All");
+const [loading,setLoading] =
+useState(true);
 
 
 
-  const [selectedMember,setSelectedMember] =
-  useState<Team | null>(null);
+const [loadingDesignations,setLoadingDesignations] =
+useState(true);
 
 
 
-  const [showDelete,setShowDelete] =
-  useState(false);
+
+const [search,setSearch] =
+useState("");
+
+
+
+const [designationId,setDesignationId] =
+useState(0);
+
+
+
+const [status,setStatus] =
+useState<
+"All" | "Active" | "Inactive"
+>("All");
+
+
+
+
+const [selectedMember,setSelectedMember] =
+useState<Team | null>(null);
+
+
+
+const [showDelete,setShowDelete] =
+useState(false);
+
+
 
 
 
@@ -73,15 +100,66 @@ export default function TeamTable() {
 // =================================
 
 
-const imageUrl = (image: string | null) => {
-  if (!image) return null;
+const getImageUrl = (
+image?:string|null
+)=>{
 
-  if (image.startsWith("http")) {
-    return image;
-  }
 
-  return `http://localhost:5000${image}`;
+if(!image)
+return null;
+
+
+
+if(
+image.startsWith("http")
+)
+{
+return image;
+}
+
+
+
+const SERVER_URL =
+process.env.NEXT_PUBLIC_IMAGE_URL ||
+"http://localhost:5000";
+
+
+
+let path =
+image.replace(/^\/+/,"");
+
+
+
+if(
+path.startsWith("team/")
+)
+{
+
+path =
+`uploads/${path}`;
+
+}
+
+
+if(
+!path.startsWith("uploads/")
+)
+{
+
+path =
+`uploads/${path}`;
+
+}
+
+
+
+return `${SERVER_URL}/${path}`;
+
+
 };
+
+
+
 
 
 
@@ -101,7 +179,10 @@ loadMembers();
 
 
 
-const loadMembers = async()=>{
+
+
+const loadMembers =
+async()=>{
 
 
 try{
@@ -116,53 +197,104 @@ await teamAPI.getAll();
 
 
 
-const data =
-Array.isArray(response)
-?
+console.log(
+"TEAM API RESPONSE",
 response
+);
+
+
+
+const data =
+
+Array.isArray(response)
+
+?
+
+response
+
 :
-response.data ?? [];
+
+response?.data ?? [];
 
 
 
 
 
-const formatted = response.map((item: any) => ({
-  id: item.id,
-  name: item.name,
-
-  designationId:
-    Number(item.designation_id),
-
-  designation:
-    item.designation ??
-    item.designation_name ??
-    "Not Assigned",
-
-  specialization:
-    item.specialization,
-
-  experience:
-    item.experience,
-
-  email:
-    item.email,
-
-  phone:
-    item.phone,
-
-  bio:
-    item.bio,
-
-  image:
-    imageUrl(item.image),
-
-  status:
-    item.status,
-}));
+const formatted =
+data.map(
+(item:any)=>({
 
 
-setMembers(formatted);
+id:item.id,
+
+
+name:item.name ?? "",
+
+
+
+designationId:
+Number(
+item.designation_id ??
+item.designationId ??
+0
+),
+
+
+
+designation:
+item.designation ??
+item.designation_name ??
+"Not Assigned",
+
+
+
+specialization:
+item.specialization ?? "",
+
+
+
+experience:
+item.experience ?? "",
+
+
+
+email:
+item.email ?? "",
+
+
+
+phone:
+item.phone ?? "",
+
+
+
+bio:
+item.bio ?? "",
+
+
+
+image:
+getImageUrl(
+item.image
+),
+
+
+
+status:
+item.status ?? "Active"
+
+
+
+})
+);
+
+
+
+
+
+setMembers(
+formatted
+);
 
 
 
@@ -177,7 +309,6 @@ error
 
 
 setMembers([]);
-
 
 }
 finally{
@@ -198,6 +329,7 @@ setLoading(false);
 
 
 
+
 // =================================
 // LOAD DESIGNATIONS
 // =================================
@@ -205,9 +337,13 @@ setLoading(false);
 
 useEffect(()=>{
 
+
 loadDesignations();
 
+
 },[]);
+
+
 
 
 
@@ -227,12 +363,19 @@ await designationAPI.getAll();
 
 
 
+
 const data =
+
 Array.isArray(response)
+
 ?
+
 response
+
 :
-response.data ?? [];
+
+response?.data ?? [];
+
 
 
 
@@ -253,12 +396,13 @@ catch(error){
 
 
 console.error(
+"DESIGNATION ERROR",
 error
 );
 
 
-setDesignations([]);
 
+setDesignations([]);
 
 }
 finally{
@@ -271,6 +415,8 @@ setLoadingDesignations(false);
 
 
 };
+
+
 
 
 
@@ -293,30 +439,42 @@ return members.filter(
 (member)=>{
 
 
-const searchText =
+const keyword =
 search.toLowerCase();
+
 
 
 
 const searchMatch =
 
+
 member.name
 .toLowerCase()
-.includes(searchText)
+.includes(keyword)
+
+
 
 ||
-member.email
+
+(member.email ?? "")
 .toLowerCase()
-.includes(searchText)
+.includes(keyword)
+
+
 
 ||
-member.phone
+
+(member.phone ?? "")
 .includes(search);
 
 
 
 
+
+
+
 const designationMatch =
+
 
 designationId===0
 
@@ -326,12 +484,18 @@ true
 
 :
 
-member.designationId === designationId;
+Number(
+member.designationId
+)
+=== designationId;
+
+
 
 
 
 
 const statusMatch =
+
 
 status==="All"
 
@@ -376,6 +540,9 @@ status
 
 
 
+
+
+
 // =================================
 // DELETE
 // =================================
@@ -400,7 +567,7 @@ const handleDelete =
 async()=>{
 
 
-if(!selectedMember)
+if(!selectedMember?.id)
 return;
 
 
@@ -415,11 +582,13 @@ selectedMember.id
 
 
 
-if(response.success){
-
+if(
+response?.success ||
+response?.status===200
+)
+{
 
 await loadMembers();
-
 
 }
 
@@ -428,7 +597,6 @@ await loadMembers();
 setShowDelete(false);
 
 setSelectedMember(null);
-
 
 
 }
@@ -465,8 +633,7 @@ alert(
 // =================================
 
 
-const handleReset = ()=>{
-
+const handleReset=()=>{
 
 setSearch("");
 
@@ -474,8 +641,8 @@ setDesignationId(0);
 
 setStatus("All");
 
-
 };
+
 
 
 
@@ -487,7 +654,8 @@ setStatus("All");
 if(
 loading ||
 loadingDesignations
-){
+)
+{
 
 
 return (
@@ -506,8 +674,9 @@ Loading Team Members...
 
 );
 
-
 }
+
+
 
 
 
@@ -544,9 +713,11 @@ loadingDesignations
 }
 
 
+
 onSearchChange={
 setSearch
 }
+
 
 
 onDesignationChange={
@@ -554,9 +725,11 @@ setDesignationId
 }
 
 
+
 onStatusChange={
 setStatus
 }
+
 
 
 onReset={
@@ -564,9 +737,8 @@ handleReset
 }
 
 
+
 />
-
-
 
 
 
@@ -598,51 +770,33 @@ shadow-sm
 
 
 <th className="px-5 py-4 text-left">
-
 Team Member
-
 </th>
 
 
-
 <th className="px-5 py-4 text-left">
-
 Designation
-
 </th>
 
 
-
 <th className="px-5 py-4 text-left">
-
 Specialization
-
 </th>
 
 
-
 <th className="px-5 py-4 text-left">
-
 Experience
-
 </th>
 
 
-
 <th className="px-5 py-4 text-left">
-
 Status
-
 </th>
-
 
 
 <th className="px-5 py-4 text-left">
-
 Action
-
 </th>
-
 
 
 </tr>
@@ -654,12 +808,15 @@ Action
 
 
 
+
 <tbody>
 
 
 {
 
-filteredMembers.length===0 ?
+filteredMembers.length===0
+
+?
 
 
 <tr>
@@ -678,9 +835,7 @@ gap-3
 ">
 
 
-<SearchX
-size={48}
-/>
+<SearchX size={48}/>
 
 
 <h3 className="font-semibold">
@@ -695,7 +850,6 @@ No Team Members Found
 
 </td>
 
-
 </tr>
 
 
@@ -708,12 +862,9 @@ filteredMembers.map(
 
 <TeamRow
 
-
 key={member.id}
 
-
 member={member}
-
 
 onDelete={
 handleDeleteClick
@@ -727,9 +878,7 @@ handleDeleteClick
 
 )
 
-
 }
-
 
 
 </tbody>
@@ -759,6 +908,7 @@ open={showDelete}
 member={selectedMember}
 
 
+
 onClose={()=>{
 
 
@@ -774,7 +924,6 @@ setSelectedMember(null);
 onConfirm={
 handleDelete
 }
-
 
 
 />

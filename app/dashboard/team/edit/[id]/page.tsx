@@ -1,35 +1,31 @@
 "use client";
 
-
 import {
   useEffect,
-  useState
+  useState,
 } from "react";
 
 import Link from "next/link";
 
 import {
   useParams,
-  useRouter
+  useRouter,
 } from "next/navigation";
 
-
 import {
-  ArrowLeft
+  ArrowLeft,
 } from "lucide-react";
 
 
-import TeamForm,
-{
- TeamFormData
-}
-from "@/app/components/team/TeamForm";
+import TeamForm, {
+  TeamFormData,
+} from "@/app/components/team/TeamForm";
 
 
 import {
- teamAPI
-}
-from "@/app/services/team.api";
+  teamAPI,
+} from "@/app/services/team.api";
+
 
 
 
@@ -43,36 +39,43 @@ const router = useRouter();
 const params = useParams();
 
 
-const id =
-Number(params.id);
+const id = Number(
+  params.id
+);
 
-
-
-const [loading,setLoading]
-=
-useState(true);
 
 
 
 const [
-initialData,
-setInitialData
-]
-=
-useState<TeamFormData | null>(
-null
+  loading,
+  setLoading
+]=useState(true);
+
+
+
+const [
+  initialData,
+  setInitialData
+]=useState<TeamFormData | null>(
+  null
 );
 
 
 
 
 
+
+// =====================================
+// LOAD TEAM
+// =====================================
+
+
 useEffect(()=>{
 
 
-if(id){
+if(!isNaN(id)){
 
-loadTeamMember();
+  loadTeamMember();
 
 }
 
@@ -83,8 +86,9 @@ loadTeamMember();
 
 
 
-const loadTeamMember =
-async()=>{
+
+
+const loadTeamMember = async()=>{
 
 
 try{
@@ -94,17 +98,33 @@ setLoading(true);
 
 
 
-const member =
+const response =
 await teamAPI.getById(id);
 
 
 
-
 console.log(
-"EDIT TEAM DATA",
-member
+"EDIT TEAM RESPONSE",
+response
 );
 
+
+
+
+// handle API response
+
+const member =
+response.data ?? response;
+
+
+
+if(!member){
+
+throw new Error(
+"Team member not found"
+);
+
+}
 
 
 
@@ -112,57 +132,62 @@ member
 setInitialData({
 
 
-id:member.id,
+
+id:
+member.id,
+
 
 
 name:
-member.name || "",
+member.name ?? "",
 
 
 
 designationId:
 Number(
-member.designation_id
+member.designation_id ??
+member.designationId ??
+0
 ),
 
 
 
 specialization:
-member.specialization || "",
+member.specialization ?? "",
 
 
 
 experience:
-member.experience || "",
+member.experience ?? "",
 
 
 
 email:
-member.email || "",
+member.email ?? "",
 
 
 
 phone:
-member.phone || "",
+member.phone ?? "",
 
 
 
 bio:
-member.bio || "",
+member.bio ?? "",
 
 
 
 image:
-member.image || null,
+member.image ?? null,
 
 
 
 status:
-member.status || "Active"
-
+member.status ?? "Active",
 
 
 });
+
 
 
 
@@ -172,13 +197,16 @@ catch(error){
 
 
 console.error(
+"LOAD TEAM ERROR",
 error
 );
+
 
 
 alert(
 "Team member not found"
 );
+
 
 
 router.push(
@@ -197,7 +225,6 @@ setLoading(false);
 }
 
 
-
 };
 
 
@@ -206,13 +233,44 @@ setLoading(false);
 
 
 
-const handleSubmit =
-async(
+
+
+
+// =====================================
+// UPDATE
+// =====================================
+
+
+const handleSubmit = async(
+
 data:FormData
+
 )=>{
 
 
 try{
+
+
+
+console.log(
+"UPDATE TEAM DATA"
+);
+
+
+data.forEach(
+(value,key)=>{
+
+console.log(
+key,
+value
+);
+
+}
+
+);
+
+
+
 
 
 const response =
@@ -223,15 +281,30 @@ data
 
 
 
-if(!response.success){
 
 
-throw new Error(
-response.message
+console.log(
+"UPDATE RESPONSE",
+response
 );
 
 
+
+
+
+
+if(
+!response.success
+){
+
+throw new Error(
+response.message ||
+"Update failed"
+);
+
 }
+
+
 
 
 
@@ -248,13 +321,18 @@ router.push(
 
 
 }
-catch(error){
+catch(error:any){
 
 
-console.error(error);
+console.error(
+"UPDATE TEAM ERROR",
+error
+);
+
 
 
 alert(
+error.message ||
 "Failed to update team"
 );
 
@@ -263,7 +341,10 @@ alert(
 }
 
 
+
 };
+
+
 
 
 
@@ -275,9 +356,15 @@ if(loading){
 
 return (
 
-<div className="rounded-xl border bg-white p-10 text-center">
+<div className="
+rounded-xl
+border
+bg-white
+p-10
+text-center
+">
 
-Loading...
+Loading team member...
 
 </div>
 
@@ -296,9 +383,14 @@ if(!initialData){
 
 return (
 
-<div className="rounded-xl border bg-white p-10">
+<div className="
+rounded-xl
+border
+bg-white
+p-10
+">
 
-Team Member Not Found
+Team member not found
 
 </div>
 
@@ -311,13 +403,25 @@ Team Member Not Found
 
 
 
+
+
+
 return (
 
 <div className="space-y-6">
 
 
 
-<div className="flex items-center gap-3">
+
+
+{/* HEADER */}
+
+<div className="
+flex
+items-center
+gap-3
+">
+
 
 
 <Link
@@ -333,11 +437,12 @@ hover:bg-slate-100
 
 >
 
-
-<ArrowLeft size={18}/>
-
+<ArrowLeft
+size={18}
+/>
 
 </Link>
+
 
 
 
@@ -345,14 +450,20 @@ hover:bg-slate-100
 <div>
 
 
-<h1 className="text-3xl font-bold">
+<h1 className="
+text-3xl
+font-bold
+text-slate-900
+">
 
 Edit Team Member
 
 </h1>
 
 
-<p className="text-slate-500">
+<p className="
+text-slate-500
+">
 
 Update team information
 
@@ -362,7 +473,10 @@ Update team information
 </div>
 
 
+
 </div>
+
+
 
 
 
@@ -371,21 +485,32 @@ Update team information
 <TeamForm
 
 
-initialData={initialData}
+initialData={
+initialData
+}
 
 
-submitLabel="Update Team Member"
+
+submitLabel="
+Update Team Member
+"
 
 
-onSubmit={handleSubmit}
+
+onSubmit={
+handleSubmit
+}
+
 
 
 />
 
 
 
-</div>
 
+
+
+</div>
 
 );
 

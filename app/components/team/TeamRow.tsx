@@ -2,12 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
+
 import {
   Edit,
   Trash2,
 } from "lucide-react";
 
 import { Team } from "@/app/types/team";
+
 
 
 type TeamRowProps = {
@@ -22,44 +24,182 @@ type TeamRowProps = {
 
 
 
+
+// ==========================================
+// IMAGE URL BUILDER
+// ==========================================
+
+const getImageUrl = (
+  image?: string | null
+) => {
+
+
+  if(
+    !image ||
+    image.trim() === ""
+  ){
+
+    return null;
+
+  }
+
+
+
+  const API_URL =
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:5000/api";
+
+
+
+  const SERVER_URL =
+    API_URL
+      .replace("/api","")
+      .replace(/\/+$/,"");
+
+
+
+  let imagePath =
+    image.trim();
+
+
+
+  // already full url
+
+  if(
+    imagePath.startsWith("http://") ||
+    imagePath.startsWith("https://")
+  ){
+
+    return imagePath;
+
+  }
+
+
+
+  // remove starting slash
+
+  imagePath =
+    imagePath.replace(
+      /^\/+/,
+      ""
+    );
+
+
+
+  /*
+    DATABASE VALUE:
+
+    team/image.png
+
+    convert:
+
+    uploads/team/image.png
+  */
+
+
+  if(
+    imagePath.startsWith("team/")
+  ){
+
+    imagePath =
+      `uploads/${imagePath}`;
+
+  }
+
+
+
+  else if(
+    !imagePath.startsWith("uploads/")
+  ){
+
+    imagePath =
+      `uploads/${imagePath}`;
+
+  }
+
+
+
+
+  const finalUrl =
+    `${SERVER_URL}/${imagePath}`;
+
+
+
+  console.log(
+    "FINAL IMAGE URL:",
+    finalUrl
+  );
+
+
+
+  return finalUrl;
+
+
+};
+
+
+
+
+
+
+
 export default function TeamRow({
 
-  member,
+ member,
 
-  onDelete,
+ onDelete,
 
-}: TeamRowProps) {
+}:TeamRowProps){
+
+
+
+const imageUrl =
+getImageUrl(
+ member.image
+);
+
 
 
 
 return (
 
-<tr className="
+<tr
+
+className="
 border-t
 border-slate-200
 hover:bg-slate-50
-">
+"
+
+>
 
 
 
+<td
 
-
-{/* TEAM MEMBER */}
-
-<td className="
+className="
 px-5
 py-4
-">
+"
+
+>
 
 
-<div className="
+<div
+
+className="
 flex
 items-center
 gap-4
-">
+"
+
+>
 
 
-<div className="
+
+<div
+
+className="
 relative
 h-14
 w-14
@@ -67,26 +207,43 @@ overflow-hidden
 rounded-xl
 border
 bg-slate-100
-">
+"
+
+>
 
 
 {
-member.image ? (
+
+imageUrl ? (
+
 
 <Image
-  src={member.image}
-  alt={member.name}
-  fill
-  sizes="56px"
-  className="object-cover"
+
+src={imageUrl}
+
+alt={member.name}
+
+fill
+
+sizes="56px"
+
+className="
+object-cover
+"
+
+unoptimized
+
 />
+
 
 )
 
 :
 
 (
+
 <div
+
 className="
 flex
 h-full
@@ -96,16 +253,23 @@ justify-center
 text-xs
 text-slate-500
 "
+
 >
+
 N/A
+
 </div>
+
 )
+
 
 }
 
 
 
 </div>
+
+
 
 
 
@@ -114,10 +278,14 @@ N/A
 <div>
 
 
-<h3 className="
+<h3
+
+className="
 font-semibold
 text-slate-900
-">
+"
+
+>
 
 {member.name}
 
@@ -126,45 +294,49 @@ text-slate-900
 
 
 
-
 {
-member.email && (
+member.email &&
 
-<p className="
+<p
+
+className="
 text-sm
 text-slate-500
-">
+"
+
+>
 
 {member.email}
 
 </p>
 
-)
 }
 
 
 
 
-
 {
-member.phone && (
+member.phone &&
 
-<p className="
+<p
+
+className="
 text-sm
 text-slate-500
-">
+"
+
+>
 
 {member.phone}
 
 </p>
 
-)
 }
 
 
 
-
 </div>
+
 
 
 </div>
@@ -178,27 +350,23 @@ text-slate-500
 
 
 
+<td
 
-{/* DESIGNATION */}
-
-<td className="
+className="
 px-5
 py-4
-">
+"
 
-
-<span>
+>
 
 {
 
-member.designation ??
+member.designation ||
 
 "Not Assigned"
 
 }
 
-</span>
-
 
 </td>
 
@@ -208,15 +376,14 @@ member.designation ??
 
 
 
+<td
 
-
-{/* SPECIALIZATION */}
-
-<td className="
+className="
 px-5
 py-4
-">
+"
 
+>
 
 {
 
@@ -235,14 +402,14 @@ member.specialization ||
 
 
 
+<td
 
-{/* EXPERIENCE */}
-
-<td className="
+className="
 px-5
 py-4
-">
+"
 
+>
 
 {
 
@@ -262,13 +429,14 @@ member.experience ||
 
 
 
+<td
 
-{/* STATUS */}
-
-<td className="
+className="
 px-5
 py-4
-">
+"
+
+>
 
 
 <span
@@ -287,8 +455,7 @@ font-medium
 
 
 ${
-
-member.status === "Active"
+member.status==="Active"
 
 ?
 
@@ -306,7 +473,6 @@ member.status === "Active"
 
 {member.status}
 
-
 </span>
 
 
@@ -319,20 +485,26 @@ member.status === "Active"
 
 
 
+<td
 
-{/* ACTION */}
-
-<td className="
+className="
 px-5
 py-4
-">
+"
+
+>
 
 
-<div className="
+<div
+
+className="
 flex
 items-center
 gap-2
-">
+"
+
+>
+
 
 
 <Link
@@ -344,19 +516,14 @@ rounded-lg
 border
 p-2
 text-blue-600
-transition
 hover:bg-blue-50
 "
-
-title="Edit"
 
 >
 
 <Edit size={18}/>
 
-
 </Link>
-
 
 
 
@@ -367,7 +534,7 @@ title="Edit"
 
 type="button"
 
-onClick={() =>
+onClick={()=>
 onDelete(member)
 }
 
@@ -376,14 +543,10 @@ rounded-lg
 border
 p-2
 text-red-600
-transition
 hover:bg-red-50
 "
 
-title="Delete"
-
 >
-
 
 <Trash2 size={18}/>
 
@@ -392,12 +555,10 @@ title="Delete"
 
 
 
-
 </div>
 
 
 </td>
-
 
 
 

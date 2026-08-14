@@ -11,48 +11,93 @@ import {
   useRouter,
 } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft,
+} from "lucide-react";
+
 
 import FeedbackForm, {
   FeedbackFormData,
 } from "@/app/components/feedback/FeedbackForm";
 
-import { feedbackAPI } from "@/app/services/feedback.api";
 
-import type { Feedback } from "@/types/feedback";
+import {
+  feedbackAPI,
+} from "@/app/services/feedback.api";
+
+
+import type {
+  Feedback,
+} from "@/types/feedback";
+
+
+// ==========================================
+// PAGE
+// ==========================================
 
 export default function EditFeedbackPage() {
+
+
   const router = useRouter();
+
   const params = useParams();
 
+
+
   // ==========================================
-  // GET ID
+  // ID
   // ==========================================
 
-  const rawId = params?.id;
+  const rawId =
+    params?.id;
+
 
   const id =
     typeof rawId === "string"
       ? Number(rawId)
       : Array.isArray(rawId)
-      ? Number(rawId[0])
-      : NaN;
+        ? Number(rawId[0])
+        : NaN;
+
+
 
   // ==========================================
   // STATES
   // ==========================================
 
-  const [feedback, setFeedback] =
-    useState<Feedback | null>(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    feedback,
+    setFeedback,
+  ] =
+  useState<Feedback | null>(
+    null
+  );
 
-  const [saving, setSaving] =
-    useState(false);
 
-  const [error, setError] =
-    useState("");
+
+  const [
+    loading,
+    setLoading,
+  ] =
+  useState(true);
+
+
+
+  const [
+    saving,
+    setSaving,
+  ] =
+  useState(false);
+
+
+
+  const [
+    error,
+    setError,
+  ] =
+  useState("");
+
 
   // ==========================================
   // LOAD FEEDBACK
@@ -60,10 +105,13 @@ export default function EditFeedbackPage() {
 
   const loadFeedback =
     useCallback(async () => {
+
+
       if (
         !Number.isInteger(id) ||
         id <= 0
       ) {
+
         setError(
           "Invalid feedback ID."
         );
@@ -73,359 +121,550 @@ export default function EditFeedbackPage() {
         return;
       }
 
+
+
       try {
+
         setLoading(true);
+
         setError("");
 
-        console.log(
-          "=========================================="
-        );
+
 
         console.log(
           "========== LOAD FEEDBACK =========="
         );
 
         console.log(
-          "FEEDBACK ID:",
+          "ID:",
           id
         );
 
+
+
         const response =
-          await feedbackAPI.getById(id);
+          await feedbackAPI.getById(
+            id
+          );
+
+
 
         console.log(
-          "RAW FEEDBACK RESPONSE:",
+          "RAW RESPONSE:",
           response
         );
+
+
 
         // ======================================
         // RESPONSE DATA
         // ======================================
 
+        const responseData =
+          response &&
+          typeof response === "object" &&
+          "data" in response
+            ? (
+                response as {
+                  data?: unknown;
+                }
+              ).data
+            : response;
+
+
+
         const data =
-          (response as any)?.data ??
-          response;
+          responseData as any;
+
+
 
         if (
           !data ||
           !data.id
         ) {
+
           throw new Error(
             "Feedback not found."
           );
+
         }
 
+
+
         // ======================================
-        // NORMALIZE
+        // NORMALIZE DATABASE FIELD
+        //
+        // MYSQL:
+        // patient_image
+        //
+        // FRONTEND:
+        // patientImage
         // ======================================
+
 
         const normalizedFeedback:
-          Feedback = {
-            id: Number(data.id),
+          Feedback =
+        {
 
-            patientName:
-              data.patientName ??
-              data.patient_name ??
-              "",
+          id:
+            Number(
+              data.id
+            ),
 
-            patientImage:
-              data.patient_image ??
-              data.patientImage ??
-              null,
 
-            treatment:
-              data.treatment ??
-              "",
 
-            rating:
-              Number(data.rating) ||
-              0,
+          patientName:
+            data.patientName ??
+            data.patient_name ??
+            "",
 
-            review:
-              data.review ??
-              "",
 
-            status:
-              data.status ??
-              "Inactive",
 
-            date:
-              data.date ??
-              "",
+          patientImage:
+            data.patient_image ??
+            data.patientImage ??
+            null,
 
-            createdAt:
-              data.createdAt ??
-              data.created_at ??
-              undefined,
 
-            updatedAt:
-              data.updatedAt ??
-              data.updated_at ??
-              undefined,
-          };
+
+          treatment:
+            data.treatment ??
+            "",
+
+
+
+          rating:
+            Number(
+              data.rating
+            ) || 0,
+
+
+
+          review:
+            data.review ??
+            "",
+
+
+
+          status:
+            data.status ??
+            "Pending",
+
+
+
+          date:
+            data.date ??
+            "",
+
+
+
+          createdAt:
+            data.createdAt ??
+            data.created_at ??
+            undefined,
+
+
+
+          updatedAt:
+            data.updatedAt ??
+            data.updated_at ??
+            undefined,
+
+        };
+
+
+
+        // ======================================
+        // DEBUG IMAGE
+        // ======================================
 
         console.log(
-          "========== NORMALIZED FEEDBACK =========="
+          "========== PATIENT IMAGE CHECK =========="
         );
 
-        console.log(
-          normalizedFeedback
-        );
 
         console.log(
-          "patient_image:",
+          "DATABASE patient_image:",
           data.patient_image
         );
 
+
         console.log(
-          "patientImage:",
+          "DATABASE patientImage:",
+          data.patientImage
+        );
+
+
+        console.log(
+          "FINAL FRONTEND IMAGE:",
           normalizedFeedback.patientImage
         );
+
+
+        console.log(
+          "=========================================="
+        );
+
+
 
         setFeedback(
           normalizedFeedback
         );
 
-      } catch (error) {
+
+
+      } catch(error) {
+
+
         console.error(
           "LOAD FEEDBACK ERROR:",
           error
         );
 
-        setFeedback(null);
+
+
+        setFeedback(
+          null
+        );
+
+
 
         setError(
           error instanceof Error
             ? error.message
             : "Failed to load feedback."
         );
+
+
+
       } finally {
+
+
         setLoading(false);
+
+
       }
-    }, [id]);
+
+
+
+    },[
+      id
+    ]);
+
+
+
+
 
   // ==========================================
   // INITIAL LOAD
   // ==========================================
 
-  useEffect(() => {
-    loadFeedback();
-  }, [loadFeedback]);
 
-  // ==========================================
+  useEffect(() => {
+
+    loadFeedback();
+
+  },[
+    loadFeedback
+  ]);
+    // ==========================================
   // UPDATE FEEDBACK
   // ==========================================
 
   const handleSubmit = async (
     data: FeedbackFormData
   ) => {
+
+
     if (
       !Number.isInteger(id) ||
       id <= 0
     ) {
+
       throw new Error(
         "Invalid feedback ID."
       );
+
     }
 
+
+
     try {
+
+
       setSaving(true);
 
+
+
+      console.log(
+        "========== UPDATE FEEDBACK =========="
+      );
+
+
+
+      console.log(
+        "ID:",
+        id
+      );
+
+
+
+      console.log(
+        "FORM DATA:",
+        data
+      );
+
+
+
       // ======================================
-      // NORMALIZE
+      // NORMALIZE DATA
       // ======================================
+
 
       const patientName =
-        typeof data.patientName ===
-          "string"
-          ? data.patientName.trim()
-          : "";
+        data.patientName
+          ?.trim();
+
+
 
       const treatment =
-        typeof data.treatment ===
-          "string"
-          ? data.treatment.trim()
-          : "";
+        data.treatment
+          ?.trim();
 
-      const rating =
-        Number(data.rating);
+
 
       const review =
-        typeof data.review ===
-          "string"
-          ? data.review.trim()
-          : "";
+        data.review
+          ?.trim();
+
+
+
+      const rating =
+        Number(
+          data.rating
+        );
+
+
 
       const status =
         data.status;
 
+
+
       const date =
-        typeof data.date ===
-          "string"
-          ? data.date
-          : "";
+        data.date;
+
+
 
       // ======================================
       // VALIDATION
       // ======================================
 
-      if (!patientName) {
+
+      if(!patientName){
+
         throw new Error(
           "Patient name is required."
         );
+
       }
 
-      if (!treatment) {
+
+
+      if(!treatment){
+
         throw new Error(
           "Treatment is required."
         );
+
       }
 
-      if (
-        !Number.isInteger(rating) ||
+
+
+      if(
         rating < 1 ||
         rating > 5
-      ) {
+      ){
+
         throw new Error(
           "Rating must be between 1 and 5."
         );
+
       }
 
-      if (!review) {
+
+
+      if(!review){
+
         throw new Error(
-          "Patient review is required."
+          "Review is required."
         );
+
       }
 
-      if (!status) {
-        throw new Error(
-          "Feedback status is required."
-        );
-      }
 
-      if (!date) {
-        throw new Error(
-          "Feedback date is required."
-        );
-      }
 
       // ======================================
-      // CREATE FORMDATA
+      // FORMDATA
       // ======================================
+
 
       const formData =
         new FormData();
+
+
 
       formData.append(
         "patientName",
         patientName
       );
 
+
+
       formData.append(
         "treatment",
         treatment
       );
+
+
 
       formData.append(
         "rating",
         String(rating)
       );
 
+
+
       formData.append(
         "review",
         review
       );
+
+
 
       formData.append(
         "status",
         status
       );
 
+
+
       formData.append(
         "date",
         date
       );
 
+
+
       // ======================================
       // PATIENT IMAGE
       // ======================================
+      //
+      // BACKEND MULTER FIELD
+      //
+      // patient_image
+      //
+      // If your backend uses:
+      // upload.single("patientImage")
+      //
+      // change below to patientImage
+      //
+      // ======================================
 
-      if (
+
+
+      if(
         data.patientImage instanceof File
-      ) {
+      ){
+
+
         console.log(
-          "NEW PATIENT IMAGE:",
-          {
-            name:
-              data.patientImage.name,
-
-            type:
-              data.patientImage.type,
-
-            size:
-              data.patientImage.size,
-          }
+          "NEW IMAGE SELECTED:",
+          data.patientImage.name
         );
 
-        /*
-         * IMPORTANT:
-         *
-         * Backend field:
-         *
-         * patient_image
-         */
 
-        formData.append(
-          "patient_image",
-          data.patientImage
-        );
-      } else {
+
+ 
+formData.append(
+  "patientImage",
+  data.patientImage
+);
+
+
+      }
+      else{
+
+
         console.log(
-          "NO NEW PATIENT IMAGE SELECTED"
+          "NO NEW IMAGE"
         );
+
+
       }
 
+
+
       // ======================================
-      // DEBUG
+      // DEBUG FORMDATA
       // ======================================
+
 
       console.log(
-        "========== UPDATE FEEDBACK FORMDATA =========="
+        "========== FORMDATA =========="
       );
 
-      for (
+
+      for(
         const [
           key,
-          value,
-        ] of formData.entries()
-      ) {
-        if (
+          value
+        ]
+        of formData.entries()
+      ){
+
+
+        if(
           value instanceof File
-        ) {
+        ){
+
           console.log(
-            `${key}:`,
+            key,
             {
-              name:
-                value.name,
-
-              type:
-                value.type,
-
-              size:
-                value.size,
+              name:value.name,
+              type:value.type,
+              size:value.size
             }
           );
-        } else {
+
+
+        }
+        else{
+
+
           console.log(
-            `${key}:`,
+            key,
             value
           );
+
+
         }
+
+
       }
 
+
+
+      console.log(
+        "=============================="
+      );
+
+
+
       // ======================================
-      // API
+      // API UPDATE
       // ======================================
+
 
       const response =
         await feedbackAPI.update(
@@ -433,51 +672,70 @@ export default function EditFeedbackPage() {
           formData
         );
 
+
+
       console.log(
-        "UPDATE FEEDBACK RESPONSE:",
+        "UPDATE RESPONSE:",
         response
       );
 
-      // ======================================
-      // SUCCESS
-      // ======================================
+
 
       alert(
         "Feedback updated successfully."
       );
 
+
+
       router.push(
         "/dashboard/feedback"
       );
 
-      router.refresh();
 
-    } catch (error) {
+
+    }
+    catch(error){
+
+
       console.error(
-        "UPDATE FEEDBACK ERROR:",
+        "UPDATE ERROR:",
         error
       );
+
 
       alert(
         error instanceof Error
           ? error.message
-          : "Failed to update feedback."
+          : "Update failed."
       );
 
-      throw error;
-    } finally {
-      setSaving(false);
-    }
-  };
 
-  // ==========================================
+      throw error;
+
+
+    }
+    finally{
+
+
+      setSaving(false);
+
+
+    }
+
+
+  };
+    // ==========================================
   // LOADING
   // ==========================================
 
   if (loading) {
+
     return (
+
       <div className="flex min-h-[400px] items-center justify-center">
+
         <div className="text-center">
+
 
           <div
             className="
@@ -493,37 +751,60 @@ export default function EditFeedbackPage() {
             "
           />
 
+
           <p className="text-slate-500">
             Loading feedback...
           </p>
 
+
         </div>
+
       </div>
+
     );
+
   }
+
+
 
   // ==========================================
   // ERROR
   // ==========================================
 
   if (error) {
+
     return (
+
       <div className="flex min-h-[400px] items-center justify-center">
+
+
         <div className="max-w-md text-center">
 
+
           <h2 className="text-2xl font-bold text-slate-900">
+
             Failed to Load Feedback
+
           </h2>
 
+
+
           <p className="mt-2 text-sm text-red-500">
+
             {error}
+
           </p>
+
+
 
           <div className="mt-6 flex justify-center gap-3">
 
+
             <button
               type="button"
-              onClick={loadFeedback}
+              onClick={
+                loadFeedback
+              }
               className="
                 rounded-xl
                 bg-slate-900
@@ -532,12 +813,15 @@ export default function EditFeedbackPage() {
                 text-sm
                 font-medium
                 text-white
-                transition
                 hover:bg-slate-800
               "
             >
+
               Try Again
+
             </button>
+
+
 
             <button
               type="button"
@@ -555,36 +839,62 @@ export default function EditFeedbackPage() {
                 text-sm
                 font-medium
                 text-slate-700
-                transition
                 hover:bg-slate-50
               "
             >
+
               Back
+
             </button>
+
 
           </div>
 
+
         </div>
+
+
       </div>
+
     );
+
   }
+
+
+
+
 
   // ==========================================
   // NOT FOUND
   // ==========================================
 
+
   if (!feedback) {
+
+
     return (
+
       <div className="flex min-h-[400px] items-center justify-center">
+
+
         <div className="text-center">
 
+
           <h2 className="text-2xl font-bold text-slate-900">
+
             Feedback Not Found
+
           </h2>
 
+
+
           <p className="mt-2 text-slate-500">
-            The requested feedback could not be found.
+
+            The requested feedback does not exist.
+
           </p>
+
+
 
           <button
             type="button"
@@ -600,26 +910,37 @@ export default function EditFeedbackPage() {
               px-5
               py-3
               text-white
-              transition
               hover:bg-slate-800
             "
           >
-            Back to Feedback
+
+            Back To Feedback
+
           </button>
 
-        </div>
-      </div>
-    );
-  }
 
-  // ==========================================
+        </div>
+
+
+      </div>
+
+    );
+
+
+  }
+    // ==========================================
   // PAGE
   // ==========================================
 
   return (
+
     <div className="space-y-6">
 
-      {/* HEADER */}
+
+      {/* ======================================
+          HEADER
+      ====================================== */}
+
 
       <div
         className="
@@ -632,7 +953,9 @@ export default function EditFeedbackPage() {
         "
       >
 
+
         <div className="flex items-center gap-4">
+
 
           <button
             type="button"
@@ -654,34 +977,54 @@ export default function EditFeedbackPage() {
               font-medium
               text-slate-700
               shadow-sm
-              transition
               hover:bg-slate-50
-              disabled:cursor-not-allowed
               disabled:opacity-50
             "
           >
-            <ArrowLeft size={18} />
+
+            <ArrowLeft
+              size={18}
+            />
 
             Back
+
           </button>
+
+
 
           <div>
 
+
             <h1 className="text-3xl font-bold text-slate-900">
+
               Edit Feedback
+
             </h1>
 
+
+
             <p className="mt-1 text-slate-500">
-              Update patient review and testimonial details.
+
+              Update patient review and image details.
+
             </p>
+
 
           </div>
 
+
         </div>
+
 
       </div>
 
-      {/* FORM */}
+
+
+
+      {/* ======================================
+          FORM
+      ====================================== */}
+
 
       <div
         className="
@@ -694,18 +1037,35 @@ export default function EditFeedbackPage() {
         "
       >
 
+
         <FeedbackForm
-          initialData={feedback}
-          onSubmit={handleSubmit}
+
+          initialData={
+            feedback
+          }
+
+
+          onSubmit={
+            handleSubmit
+          }
+
+
           submitLabel={
+
             saving
               ? "Updating..."
               : "Update Feedback"
+
           }
+
         />
+
 
       </div>
 
+
     </div>
+
   );
+
 }

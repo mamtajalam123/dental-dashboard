@@ -578,48 +578,27 @@ className="rounded-xl border px-4 py-3"
 
 
 <select
-
 name="designationId"
-
-value={formData.designationId}
-
-onChange={handleChange}
-
-disabled={loadingDesignations}
-
-className="rounded-xl border px-4 py-3"
-
 >
-
 
 <option value={0}>
 Select Designation
 </option>
 
-
-
 {
-
 designations.map(item=>(
 
-
 <option
-
 key={item.id}
-
 value={item.id}
-
 >
 
 {item.name}
 
 </option>
 
-
 ))
-
 }
-
 
 </select>
 
