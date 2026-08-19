@@ -1,196 +1,119 @@
-import { apiRequest } from "@/app/lib/api";
-import { Service } from "@/app/types/service";
+import api from "./api";
 
-
-// ======================================================
-// SERVICE API
-// ======================================================
 
 export const serviceAPI = {
 
-  // ====================================================
-  // GET ALL SERVICES
-  // GET /api/services
-  // ====================================================
 
-  getAll: async (): Promise<Service[]> => {
+  // ==========================
+  // CREATE SERVICE
+  // ==========================
 
-    const response = await apiRequest(
-      "/api/services",
-      {
-        method: "GET",
-      }
-    );
-
-    const data =
-      response?.data ?? response;
-
-    if (!Array.isArray(data)) {
-      return [];
-    }
-
-    return data.map((item: any) => ({
-      id: item.id,
-
-      name:
-        item.name ?? "",
-
-      categoryId:
-        item.category_id ??
-        item.categoryId ??
-        null,
-
-      categoryName:
-        item.categoryName ??
-        item.category_name ??
-        "",
-
-      duration:
-        item.duration ?? "",
-
-      description:
-        item.description ?? "",
-
-      image:
-        item.image ?? null,
-
-      status:
-        item.status ?? "Active",
-
-      createdAt:
-        item.created_at ??
-        item.createdAt ??
-        null,
-
-      updatedAt:
-        item.updated_at ??
-        item.updatedAt ??
-        null,
-    }));
-  },
-
-
-  // ====================================================
-  // GET SERVICE BY ID
-  // GET /api/services/:id
-  // ====================================================
-
-  getById: async (
-    id: number
-  ): Promise<Service> => {
+  create: async(
+    data: FormData
+  ) => {
 
     const response =
-      await apiRequest(
-        `/api/services/${id}`,
-        {
-          method: "GET",
-        }
+      await api.post(
+        "/api/services",
+        data
       );
 
-    const item =
-      response?.data ?? response;
+    return response.data;
 
-    if (!item) {
-      throw new Error(
-        "Service not found"
-      );
-    }
-
-    return {
-      id: item.id,
-
-      name:
-        item.name ?? "",
-
-      categoryId:
-        item.category_id ??
-        item.categoryId ??
-        null,
-
-      categoryName:
-        item.categoryName ??
-        item.category_name ??
-        "",
-
-      duration:
-        item.duration ?? "",
-
-      description:
-        item.description ?? "",
-
-      image:
-        item.image ?? null,
-
-      status:
-        item.status ?? "Active",
-
-      createdAt:
-        item.created_at ??
-        item.createdAt ??
-        null,
-
-      updatedAt:
-        item.updated_at ??
-        item.updatedAt ??
-        null,
-    };
   },
 
 
-  // ====================================================
-  // CREATE SERVICE
-  // POST /api/services
-  // ====================================================
-
-  create: async (
-    formData: FormData
-  ) => {
-
-    return await apiRequest(
-      "/api/services",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-  },
 
 
-  // ====================================================
+  // ==========================
   // UPDATE SERVICE
-  // PUT /api/services/:id
-  // ====================================================
+  // ==========================
 
-  update: async (
-    id: number,
-    formData: FormData
+  update: async(
+    id:number,
+    data:FormData
   ) => {
 
-    return await apiRequest(
-      `/api/services/${id}`,
-      {
-        method: "PUT",
-        body: formData,
-      }
-    );
+
+    const response =
+      await api.put(
+        `/api/services/${id}`,
+        data
+      );
+
+
+    return response.data;
+
   },
 
 
-  // ====================================================
+
+
+  // ==========================
+  // GET ALL SERVICES
+  // ==========================
+
+  getAll: async()=>{
+
+
+    const response =
+      await api.get(
+        "/api/services"
+      );
+
+
+    return response.data;
+
+
+  },
+
+
+
+
+  // ==========================
+  // GET SERVICE BY ID
+  // ==========================
+
+  getById: async(
+    id:number
+  )=>{
+
+
+    const response =
+      await api.get(
+        `/api/services/${id}`
+      );
+
+
+    return response.data;
+
+
+  },
+
+
+
+
+
+  // ==========================
   // DELETE SERVICE
-  // DELETE /api/services/:id
-  // ====================================================
+  // ==========================
 
-  delete: async (
-    id: number
-  ) => {
+  delete: async(
+    id:number
+  )=>{
 
-    return await apiRequest(
-      `/api/services/${id}`,
-      {
-        method: "DELETE",
-      }
-    );
-  },
+
+    const response =
+      await api.delete(
+        `/api/services/${id}`
+      );
+
+
+    return response.data;
+
+
+  }
+
+
 
 };

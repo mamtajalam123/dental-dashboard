@@ -7,11 +7,8 @@ export const api = axios.create({
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:5000",
 
-  headers: {
-    "Content-Type": "application/json",
-  },
-
 });
+
 
 
 
@@ -23,6 +20,7 @@ api.interceptors.request.use(
 
 
   if(typeof window !== "undefined"){
+
 
     const token =
       localStorage.getItem("token");
@@ -38,7 +36,31 @@ api.interceptors.request.use(
   }
 
 
+
+  // Handle FormData automatically
+
+  if(
+    config.data instanceof FormData
+  ){
+
+    delete config.headers[
+      "Content-Type"
+    ];
+
+  }
+  else{
+
+    config.headers[
+      "Content-Type"
+    ] =
+    "application/json";
+
+  }
+
+
+
   return config;
+
 
 },
 
@@ -48,6 +70,7 @@ api.interceptors.request.use(
   return Promise.reject(error);
 
 }
+
 
 );
 

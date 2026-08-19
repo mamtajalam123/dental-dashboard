@@ -1,417 +1,690 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Save } from "lucide-react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
-import { categoryAPI } from "@/app/services/category.api";
-import { Category } from "@/types/category";
+import {
+  Save,
+} from "lucide-react";
 
+
+import {
+  categoryAPI
+} from "@/app/services/category.api";
+
+
+import {
+  Category
+} from "@/types/category";
+
+
+
+// =====================================
+// SERVICE FORM TYPE
+// =====================================
 
 export type ServiceFormData = {
 
-  name: string;
+  name:string;
 
-  categoryId: number;
+  categoryId:number;
 
-  duration: string;
+  duration:string;
 
-  description: string;
+  shortDescription:string;
 
-  image?: string;
+  description:string;
 
-  status: "Active" | "Inactive";
+  image?:string;
+
+  status:
+    | "Active"
+    | "Inactive";
 
 };
 
+
+
+
+// =====================================
+// PROPS
+// =====================================
 
 type ServiceFormProps = {
 
-  initialData?: ServiceFormData;
 
-  onSubmit: (
-    data: FormData
-  ) => Promise<void> | void;
+  initialData?:ServiceFormData;
 
 
-  submitLabel?: string;
+  onSubmit:
+  (
+    data:FormData
+  )=>Promise<void>|void;
+
+
+
+  submitLabel?:string;
+
 
 };
 
 
 
+
+
+// =====================================
+// DURATIONS
+// =====================================
+
 const durations = [
 
-  "15 Minutes",
-  "30 Minutes",
-  "45 Minutes",
-  "60 Minutes",
-  "90 Minutes",
-  "120 Minutes",
+"15 Minutes",
+"30 Minutes",
+"45 Minutes",
+"60 Minutes",
+"90 Minutes",
+"120 Minutes",
 
 ];
 
 
 
-const defaultData: ServiceFormData = {
 
-  name: "",
 
-  categoryId: 0,
+// =====================================
+// DEFAULT DATA
+// =====================================
 
-  duration: "",
+const defaultData:ServiceFormData = {
 
-  description: "",
 
-  image: "",
+name:"",
 
-  status: "Active",
+
+categoryId:0,
+
+
+duration:"",
+
+
+shortDescription:"",
+
+
+description:"",
+
+
+image:"",
+
+
+status:"Active",
+
 
 };
 
 
 
+
+
+
+
+
 export default function ServiceForm({
 
-  initialData = defaultData,
+initialData = defaultData,
 
-  onSubmit,
+onSubmit,
 
-  submitLabel = "Save Service",
+submitLabel="Save Service",
 
-}: ServiceFormProps) {
+}:ServiceFormProps){
 
 
 
-  const [formData,setFormData] =
-    useState<ServiceFormData>(
-      initialData
-    );
 
 
+// =====================================
+// STATE
+// =====================================
 
-  const [categories,setCategories] =
-    useState<Category[]>([]);
 
+const [formData,setFormData] =
+useState<ServiceFormData>({
 
+...defaultData,
 
-  const [loadingCategories,setLoadingCategories] =
-    useState(true);
+...initialData,
 
+});
 
 
-  const [loading,setLoading] =
-    useState(false);
 
 
+const [categories,setCategories] =
+useState<Category[]>([]);
 
-  const [imageFile,setImageFile] =
-    useState<File | null>(null);
 
 
+const [loadingCategories,setLoadingCategories] =
+useState(false);
 
-  const [preview,setPreview] =
-    useState("");
 
 
+const [loading,setLoading] =
+useState(false);
 
 
 
-  // ==============================
-  // Edit Data
-  // ==============================
+const [imageFile,setImageFile] =
+useState<File|null>(null);
 
-  useEffect(()=>{
 
-    setFormData(initialData);
 
-    if(initialData.image){
+const [preview,setPreview] =
+useState(
+initialData?.image || ""
+);
+// =====================================
+// EDIT DATA UPDATE
+// =====================================
 
-      setPreview(
-        initialData.image
-      );
 
-    }
+useEffect(()=>{
 
-  },[initialData]);
 
+setFormData({
 
+...defaultData,
 
+...initialData,
 
 
+name:
+initialData?.name || "",
 
-  // ==============================
-  // Load Categories
-  // ==============================
 
+categoryId:
+initialData?.categoryId || 0,
 
-  useEffect(()=>{
 
-    loadCategories();
+duration:
+initialData?.duration || "",
 
-  },[]);
 
+shortDescription:
+initialData?.shortDescription || "",
 
 
+description:
+initialData?.description || "",
 
-  const loadCategories = async()=>{
 
-    try{
+image:
+initialData?.image || "",
 
-      setLoadingCategories(true);
 
+status:
+initialData?.status || "Active",
 
-      const data =
-        await categoryAPI.getAll();
 
+});
 
 
-      setCategories(
 
-        data.filter(
-          item =>
-            item.status==="Active"
-        )
+if(initialData?.image){
 
-      );
+setPreview(
+initialData.image
+);
 
+}
+else{
 
-    }
-    catch(error){
+setPreview("");
 
-      console.error(
-        "Category Error:",
-        error
-      );
+}
 
-    }
-    finally{
 
-      setLoadingCategories(false);
+},[initialData]);
 
-    }
 
-  };
 
 
 
+// =====================================
+// LOAD CATEGORIES
+// =====================================
 
 
+useEffect(()=>{
 
-  // ==============================
-  // Input Change
-  // ==============================
+loadCategories();
 
+},[]);
 
-  const handleChange = (
 
-    e:React.ChangeEvent<
-      HTMLInputElement |
-      HTMLTextAreaElement |
-      HTMLSelectElement
-    >
 
-  )=>{
 
 
-    const {
-      name,
-      value
-    } = e.target;
 
+const loadCategories = async()=>{
 
 
-    setFormData(prev=>({
+try{
 
-      ...prev,
 
+setLoadingCategories(true);
 
-      [name]:
 
-        name==="categoryId"
 
-        ? Number(value)
+const response =
+await categoryAPI.getAll();
 
-        : value,
 
 
-    }));
+const data =
 
+Array.isArray(response)
 
-  };
+?
 
+response
 
+:
 
+response?.data
 
+||
 
+response?.categories
 
-  // ==============================
-  // Image Change
-  // ==============================
+||
 
+[];
 
-  const handleImageChange = (
 
-    e:React.ChangeEvent<HTMLInputElement>
 
-  )=>{
 
 
-    const file =
-      e.target.files?.[0];
+setCategories(
 
+data.filter(
+(item:Category)=>
+item.status==="Active"
+)
 
-    if(!file)
-      return;
+);
 
 
 
-    setImageFile(file);
+}
 
+catch(error){
 
 
-    setPreview(
-      URL.createObjectURL(file)
-    );
+console.error(
+"Category Load Error:",
+error
+);
 
 
-  };
+setCategories([]);
 
 
+}
 
+finally{
 
 
+setLoadingCategories(false);
 
-  // ==============================
-  // Submit
-  // ==============================
 
+}
 
-  const handleSubmit = async(
 
-    e:React.FormEvent
+};
 
-  )=>{
 
 
-    e.preventDefault();
 
 
 
-    if(
 
-      !formData.name.trim()
+// =====================================
+// INPUT CHANGE
+// =====================================
 
-      ||
 
-      !formData.categoryId
+const handleChange = (
 
-      ||
+e:
+React.ChangeEvent<
+HTMLInputElement |
+HTMLTextAreaElement |
+HTMLSelectElement
+>
 
-      !formData.duration
+)=>{
 
-    ){
 
-      alert(
-        "Please fill required fields"
-      );
+const {
 
-      return;
+name,
 
-    }
+value
 
+}=e.target;
 
 
-    try{
 
 
-      setLoading(true);
 
+setFormData(
 
+(prev)=>({
 
-      const data =
-        new FormData();
+...prev,
 
 
+[name]:
 
-      data.append(
-        "name",
-        formData.name
-      );
+name==="categoryId"
 
+?
 
+Number(value)
 
-      data.append(
-        "categoryId",
-        String(
-          formData.categoryId
-        )
-      );
+:
 
+value,
 
 
-      data.append(
-        "duration",
-        formData.duration
-      );
+})
 
+);
 
 
-      data.append(
-        "description",
-        formData.description
-      );
+};
 
 
 
-      data.append(
-        "status",
-        formData.status
-      );
 
 
 
-      if(imageFile){
 
-        data.append(
-          "image",
-          imageFile
-        );
 
-      }
 
+// =====================================
+// IMAGE CHANGE
+// =====================================
 
 
-      await onSubmit(data);
+const handleImageChange = (
 
+e:
+React.ChangeEvent<HTMLInputElement>
 
+)=>{
 
-    }
-    catch(error){
 
-      console.error(error);
+const file =
+e.target.files?.[0];
 
 
-      alert(
-        "Failed to save service"
-      );
 
+if(!file)
 
-    }
-    finally{
+return;
 
-      setLoading(false);
 
-    }
 
 
-  };
 
+if(
+!file.type.startsWith("image/")
+){
 
+alert(
+"Please select image file"
+);
 
+return;
 
+}
 
 
 
+
+
+setImageFile(file);
+
+
+
+
+setPreview(
+
+URL.createObjectURL(file)
+
+);
+
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+// =====================================
+// SUBMIT
+// =====================================
+
+
+const handleSubmit = async(
+
+e:
+React.FormEvent
+
+)=>{
+
+
+e.preventDefault();
+
+
+
+
+
+
+if(
+
+!formData.name?.trim()
+
+||
+
+!formData.categoryId
+
+||
+
+!formData.duration?.trim()
+
+){
+
+
+alert(
+"Please fill required fields"
+);
+
+
+return;
+
+
+}
+
+
+
+
+
+try{
+
+
+setLoading(true);
+
+
+
+
+const data =
+new FormData();
+
+
+
+
+
+data.append(
+
+"name",
+
+formData.name
+
+);
+
+
+
+
+
+
+data.append(
+
+"categoryId",
+
+String(
+formData.categoryId
+)
+
+);
+
+
+
+
+
+
+data.append(
+
+"duration",
+
+formData.duration
+
+);
+
+
+
+
+
+// SHORT DESCRIPTION
+
+data.append(
+
+"shortDescription",
+
+formData.shortDescription || ""
+
+);
+
+
+
+
+
+
+
+
+// FULL DESCRIPTION
+
+data.append(
+
+"description",
+
+formData.description || ""
+
+);
+
+
+
+
+
+
+data.append(
+
+"status",
+
+formData.status
+
+);
+
+
+
+
+
+
+if(imageFile){
+
+
+data.append(
+
+"image",
+
+imageFile
+
+);
+
+
+}
+
+
+
+
+
+await onSubmit(data);
+
+
+
+}
+
+catch(error){
+
+
+console.error(
+
+"Submit Service Error:",
+
+error
+
+);
+
+
+alert(
+"Failed to save service"
+);
+
+
+
+}
+
+finally{
+
+
+setLoading(false);
+
+
+}
+
+
+};
 return (
 
 <form
@@ -420,11 +693,21 @@ className="space-y-6"
 >
 
 
+<div className="
+rounded-2xl
+border
+bg-white
+p-6
+shadow-sm
+">
 
-<div className="rounded-2xl border bg-white p-6 shadow-sm">
 
-
-<h2 className="mb-6 text-xl font-semibold">
+<h2 className="
+mb-6
+text-xl
+font-semibold
+text-slate-800
+">
 
 Service Information
 
@@ -432,19 +715,33 @@ Service Information
 
 
 
-<div className="grid gap-5 md:grid-cols-2">
+
+<div className="
+grid
+gap-5
+md:grid-cols-2
+">
 
 
 
-{/* Name */}
+
+
+{/* Service Name */}
 
 <div>
 
-<label className="mb-2 block font-medium">
+
+<label className="
+mb-2
+block
+font-medium
+text-slate-700
+">
 
 Service Name *
 
 </label>
+
 
 
 <input
@@ -453,15 +750,27 @@ type="text"
 
 name="name"
 
-value={formData.name}
+value={formData.name || ""}
 
 onChange={handleChange}
 
 disabled={loading}
 
-className="w-full rounded-xl border px-4 py-3"
+placeholder="Enter service name"
+
+className="
+w-full
+rounded-xl
+border
+border-slate-300
+px-4
+py-3
+outline-none
+focus:border-blue-500
+"
 
 />
+
 
 </div>
 
@@ -469,33 +778,56 @@ className="w-full rounded-xl border px-4 py-3"
 
 
 
-{/* Category */}
 
+
+
+{/* Category */}
 
 <div>
 
 
-<label className="mb-2 block font-medium">
+<label className="
+mb-2
+block
+font-medium
+text-slate-700
+">
 
 Category *
 
 </label>
 
 
+
 <select
+
 
 name="categoryId"
 
+
 value={formData.categoryId}
 
+
 onChange={handleChange}
+
 
 disabled={
 loading ||
 loadingCategories
 }
 
-className="w-full rounded-xl border px-4 py-3"
+
+className="
+w-full
+rounded-xl
+border
+border-slate-300
+px-4
+py-3
+outline-none
+focus:border-blue-500
+"
+
 
 >
 
@@ -510,7 +842,10 @@ Select Category
 
 {
 
-categories.map(category=>(
+categories.map(
+
+(category)=>(
+
 
 <option
 
@@ -524,7 +859,10 @@ value={category.id}
 
 </option>
 
-))
+
+)
+
+)
 
 }
 
@@ -540,27 +878,51 @@ value={category.id}
 
 
 
+
+
 {/* Duration */}
 
 <div>
 
 
-<label className="mb-2 block font-medium">
+<label className="
+mb-2
+block
+font-medium
+text-slate-700
+">
 
 Duration *
 
 </label>
 
 
+
 <select
+
 
 name="duration"
 
-value={formData.duration}
+
+value={formData.duration || ""}
+
 
 onChange={handleChange}
 
-className="w-full rounded-xl border px-4 py-3"
+
+disabled={loading}
+
+
+className="
+w-full
+rounded-xl
+border
+border-slate-300
+px-4
+py-3
+outline-none
+focus:border-blue-500
+"
 
 >
 
@@ -575,7 +937,10 @@ Select Duration
 
 {
 
-durations.map(item=>(
+durations.map(
+
+(item)=>(
+
 
 <option
 
@@ -589,7 +954,10 @@ value={item}
 
 </option>
 
-))
+
+)
+
+)
 
 }
 
@@ -604,27 +972,53 @@ value={item}
 
 
 
+
+
+
 {/* Status */}
 
 <div>
 
 
-<label className="mb-2 block font-medium">
+<label className="
+mb-2
+block
+font-medium
+text-slate-700
+">
 
 Status
 
 </label>
 
 
+
 <select
+
 
 name="status"
 
+
 value={formData.status}
+
 
 onChange={handleChange}
 
-className="w-full rounded-xl border px-4 py-3"
+
+disabled={loading}
+
+
+className="
+w-full
+rounded-xl
+border
+border-slate-300
+px-4
+py-3
+outline-none
+focus:border-blue-500
+"
+
 
 >
 
@@ -653,34 +1047,135 @@ Inactive
 
 
 
+
+
+
+{/* Short Description */}
+
+<div className="md:col-span-2">
+
+
+<label className="
+mb-2
+block
+font-medium
+text-slate-700
+">
+
+Short Description
+
+</label>
+
+
+
+<textarea
+
+
+name="shortDescription"
+
+
+rows={3}
+
+
+value={
+formData.shortDescription || ""
+}
+
+
+onChange={handleChange}
+
+
+disabled={loading}
+
+
+placeholder="Enter short service description"
+
+
+className="
+w-full
+rounded-xl
+border
+border-slate-300
+px-4
+py-3
+outline-none
+focus:border-blue-500
+"
+
+
+/>
+
+
+</div>
+
+
+
+
+
+
+
+
+
 {/* Description */}
 
 <div className="md:col-span-2">
 
 
-<label className="mb-2 block font-medium">
+<label className="
+mb-2
+block
+font-medium
+text-slate-700
+">
 
 Description
 
 </label>
 
 
+
 <textarea
+
 
 name="description"
 
-rows={5}
 
-value={formData.description}
+rows={6}
+
+
+value={
+formData.description || ""
+}
+
 
 onChange={handleChange}
 
-className="w-full rounded-xl border px-4 py-3"
+
+disabled={loading}
+
+
+placeholder="Enter detailed service description"
+
+
+className="
+w-full
+rounded-xl
+border
+border-slate-300
+px-4
+py-3
+outline-none
+focus:border-blue-500
+"
+
 
 />
 
 
 </div>
+
+
+
 
 
 
@@ -692,22 +1187,43 @@ className="w-full rounded-xl border px-4 py-3"
 <div className="md:col-span-2">
 
 
-<label className="mb-2 block font-medium">
+<label className="
+mb-2
+block
+font-medium
+text-slate-700
+">
 
 Service Image
 
 </label>
 
 
+
 <input
+
 
 type="file"
 
+
 accept="image/*"
+
 
 onChange={handleImageChange}
 
-className="w-full rounded-xl border px-4 py-3"
+
+disabled={loading}
+
+
+className="
+w-full
+rounded-xl
+border
+border-slate-300
+px-4
+py-3
+"
+
 
 />
 
@@ -718,8 +1234,11 @@ className="w-full rounded-xl border px-4 py-3"
 
 
 
-{/* Preview */}
 
+
+
+
+{/* Preview */}
 
 {
 
@@ -730,11 +1249,20 @@ preview &&
 
 <img
 
+
 src={preview}
 
-alt="preview"
 
-className="h-56 w-full rounded-xl object-cover"
+alt="Service Preview"
+
+
+className="
+h-56
+w-full
+rounded-xl
+object-cover
+"
+
 
 />
 
@@ -746,24 +1274,55 @@ className="h-56 w-full rounded-xl object-cover"
 
 
 
-</div>
 
 
 </div>
 
 
+</div>
 
 
 
 
-<div className="flex justify-end">
+
+
+
+
+
+{/* Submit Button */}
+
+
+<div className="
+flex
+justify-end
+">
 
 
 <button
 
+
+type="submit"
+
+
 disabled={loading}
 
-className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-white"
+
+className="
+flex
+items-center
+gap-2
+rounded-xl
+bg-blue-600
+px-6
+py-3
+font-medium
+text-white
+transition
+hover:bg-blue-700
+disabled:cursor-not-allowed
+disabled:opacity-60
+"
+
 
 >
 
@@ -771,15 +1330,21 @@ className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-white"
 <Save size={18}/>
 
 
+
 {
 
 loading
 
-? "Saving..."
+?
 
-: submitLabel
+"Saving..."
+
+:
+
+submitLabel
 
 }
+
 
 
 </button>
@@ -792,6 +1357,5 @@ loading
 </form>
 
 );
-
 
 }
